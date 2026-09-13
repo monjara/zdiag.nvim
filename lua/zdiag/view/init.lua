@@ -2,17 +2,18 @@
 ---@field ctx zdiag.Context
 ---@field bufnr integer
 ---@field lines string[]
----@field blocks any[]
----@field decorations any[]
+---@field blocks zdiag.Block[]
+---@field decorations zdiag.Decoration[]
 ---@field jump fun(self: zdiag.View): nil
----@field build fun(self: zdiag.View, groups: table<integer, any[]>, order: integer[]): zdiag.View
+---@field build fun(self: zdiag.View, range_groups: table<integer, any[]>, order: integer[]): zdiag.View
 ---@field render fun(self: zdiag.View): zdiag.View
+---@field mark_unmodified fun(self: zdiag.View): nil
 ---@field new fun(self: zdiag.View, ctx: zdiag.Context): zdiag.View
 
 local View = {}
 View.__index = View
 
----create a new view instance
+---Create a new view instance.
 ---
 ---@param ctx zdiag.Context
 ---@return zdiag.View
@@ -28,12 +29,15 @@ function View:new(ctx)
   }, self)
 end
 
---- build the view from the given diagnostics groups and order
+---Build the view from the given diagnostic ranges and order.
 ---
----@param groups table<integer, any[]>
+---@param range_groups table<integer, { start_line: integer, end_line: integer, diagnostics: vim.Diagnostic[] }[]>
 ---@param order integer[]
 ---@return zdiag.View
-function View:build(groups, order)
+function View:build(range_groups, order)
+  local Block = require("zdiag.view.block")
+  local Decoration = require("zdiag.view.decoration")
+
   for _, bufnr in ipairs(order) do
     if not vim.api.nvim_buf_is_loaded(bufnr) then
       vim.fn.bufload(bufnr)
@@ -52,10 +56,8 @@ function View:build(groups, order)
     table.insert(self.lines, "▼ " .. relative)
     table.insert(self.lines, "")
 
-    local buffer_diagnostics = groups[bufnr]
-
     local ranges =
-        require("zdiag.diagnostic").build_diagnostics_ranges(self.ctx, buffer_diagnostics, 2)
+        range_groups[bufnr] or {}
 
     local line_count =
         vim.api.nvim_buf_line_count(bufnr)
@@ -88,20 +90,21 @@ function View:build(groups, order)
 
         local view_row = #self.lines - 1
 
-        table.insert(self.decorations, {
-          type = "line",
-          row = view_row,
-          source_lnum = source_lnum,
-        })
+        table.insert(
+          self.decorations,
+          Decoration:new_line(view_row, source_lnum)
+        )
 
         for _, diagnostic in ipairs(range.diagnostics) do
           if diagnostic.lnum == source_lnum then
-            table.insert(self.decorations, {
-              type = "diagnostic",
-              row = view_row,
-              col = diagnostic.col,
-              diagnostic = diagnostic,
-            })
+            table.insert(
+              self.decorations,
+              Decoration:new_diagnostic(
+                view_row,
+                diagnostic.col,
+                diagnostic
+              )
+            )
           end
         end
       end
@@ -112,17 +115,20 @@ function View:build(groups, order)
       local separator_row = #self.lines
       table.insert(self.lines, "")
 
-      table.insert(self.blocks, {
-        bufnr = bufnr,
+      table.insert(
+        self.blocks,
+        Block:new({
+          bufnr = bufnr,
 
-        source_start = start_line,
+          source_start = start_line,
 
-        -- nvim_buf_set_lines() のendはexclusive
-        source_end = end_line + 1,
+          -- nvim_buf_set_lines() のendはexclusive
+          source_end = end_line + 1,
 
-        view_start = view_start,
-        view_end = separator_row,
-      })
+          view_start = view_start,
+          view_end = separator_row,
+        })
+      )
     end
   end
 
@@ -133,19 +139,32 @@ function View:build(groups, order)
   return self
 end
 
----render the view
+---Render the view.
 ---
 ---@return zdiag.View
 function View:render()
   require("zdiag.view.line").write_lines(self)
-  require("zdiag.view.block").attach_block_mark(self)
-  require("zdiag.view.decoration").apply_decoration(self)
-  require("zdiag.view.autocmd").create_authcmd(self)
+
+  for _, block in ipairs(self.blocks) do
+    block:attach_mark(self)
+  end
+
+  for _, decoration in ipairs(self.decorations) do
+    decoration:apply(self)
+  end
+
+  require("zdiag.view.autocmd").create_autocmd(self)
+  self:mark_unmodified()
 
   return self
 end
 
---- jump to the source of the diagnostic under the cursor
+---Clear the modified flag on the view buffer.
+function View:mark_unmodified()
+  require("zdiag.buffer").mark_modified(self.bufnr)
+end
+
+---Jump to the source of the diagnostic under the cursor.
 function View:jump()
   require('zdiag.view.jump').jump_to_source(self)
 end

@@ -1,6 +1,6 @@
 local M = {}
 
----writes the lines of a view to the buffer
+---Write the lines of a view to the buffer.
 ---
 ---@param view zdiag.View
 function M.write_lines(view)

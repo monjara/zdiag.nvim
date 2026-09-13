@@ -1,5 +1,9 @@
 local M = {}
 
+---Find a window that is not showing the diagnostics view.
+---
+---@param view zdiag.View
+---@return integer?
 local function find_target_window(view)
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     if vim.api.nvim_win_is_valid(win) then
@@ -14,6 +18,10 @@ local function find_target_window(view)
   return nil
 end
 
+---Prepare a target window for jumping to source.
+---
+---@param view zdiag.View
+---@return integer
 local function prepare_window(view)
   local target_win = find_target_window(view)
 
@@ -28,14 +36,17 @@ local function prepare_window(view)
 end
 
 
+---Find the source block at the current cursor position.
+---
 ---@param view zdiag.View
+---@return zdiag.Block?
+---@return integer?
 local function find_block_at_cursor(view)
   local cursor = vim.api.nvim_win_get_cursor(0)
   local row = cursor[1] - 1
 
   for _, block in ipairs(view.blocks) do
-    local start_row = require("zdiag.extmark").get_mark_row(view, block.start_mark)
-    local end_row = require("zdiag.extmark").get_mark_row(view, block.end_mark)
+    local start_row, end_row = block:get_view_range(view)
 
     if start_row and end_row then
       if row >= start_row and row < end_row then
@@ -48,8 +59,9 @@ local function find_block_at_cursor(view)
 end
 
 
---- Jump to the source line corresponding to the current cursor position in the view.
---- @param view zdiag.View
+---Jump to the source line corresponding to the current cursor position in the view.
+---
+---@param view zdiag.View
 function M.jump_to_source(view)
   local block, offset = find_block_at_cursor(view)
 

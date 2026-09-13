@@ -1,41 +1,20 @@
 local M = {}
 
-local function get_mark_row(ctx, buf, mark_id)
-  local position = vim.api.nvim_buf_get_extmark_by_id(
-    buf,
-    ctx.ns,
-    mark_id,
-    {}
-  )
 
-  if #position == 0 then
-    return nil
-  end
-
-  return position[1]
-end
-
-
+---Collect edited source blocks from the diagnostics view.
+---
+---@param view zdiag.View
+---@return { bufnr: integer, source_start: integer, source_end: integer, lines: string[] }[]
 local function collect_edits(view)
   local edits = {}
 
   for _, block in ipairs(view.blocks) do
-    local start_row = get_mark_row(
-      view.ctx,
-      view.view_buf,
-      block.start_mark
-    )
-
-    local end_row = get_mark_row(
-      view.ctx,
-      view.view_buf,
-      block.end_mark
-    )
+    local start_row, end_row = block:get_view_range(view)
 
     if start_row and end_row then
       local edited_lines =
           vim.api.nvim_buf_get_lines(
-            view.view_buf,
+            view.bufnr,
             start_row,
             end_row,
             false
@@ -53,7 +32,7 @@ local function collect_edits(view)
   return edits
 end
 
----apply changes from the view to the source files
+---Apply changes from the view to the source files.
 ---
 ---@param view zdiag.View
 function M.apply_changes(view)
@@ -117,7 +96,7 @@ function M.apply_changes(view)
     end
   end
 
-  require("zdiag.buffer").mark_modified(view.bufnr)
+  view:mark_unmodified()
 
   vim.notify(
     "zdiag: changes written to source files",

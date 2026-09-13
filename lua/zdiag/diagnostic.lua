@@ -1,8 +1,9 @@
 local M = {}
 
--- Get all diagnostics in the current buffer and sort them by line number and column number
---
--- @return vim.Diagnostic[]
+---Get all diagnostics and sort them by buffer, line, and column.
+---
+---@param _ctx zdiag.Context
+---@return vim.Diagnostic[]
 function M.get_diagnostics(_ctx)
   local diagnostics = vim.diagnostic.get(nil)
 
@@ -21,6 +22,12 @@ function M.get_diagnostics(_ctx)
   return diagnostics
 end
 
+---Group diagnostics by source buffer.
+---
+---@param _ctx zdiag.Context
+---@param diagnostics vim.Diagnostic[]
+---@return table<integer, vim.Diagnostic[]> groups
+---@return integer[] order
 function M.group_diagnostics(_ctx, diagnostics)
   local groups = {}
   local order = {}
@@ -39,6 +46,12 @@ function M.group_diagnostics(_ctx, diagnostics)
   return groups, order
 end
 
+---Build merged source-line ranges around diagnostics.
+---
+---@param _ctx zdiag.Context
+---@param diagnostics vim.Diagnostic[]
+---@param range integer
+---@return { start_line: integer, end_line: integer, diagnostics: vim.Diagnostic[] }[]
 function M.build_diagnostics_ranges(_ctx, diagnostics, range)
   local ranges = {}
 

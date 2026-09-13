@@ -1,9 +1,9 @@
 local M = {}
 
----create autocmd for the given view
+---Create autocmds for the given view.
 ---
 ---@param view zdiag.View
-function M.create_authcmd(view)
+function M.create_autocmd(view)
   vim.api.nvim_create_autocmd(
     "BufWriteCmd",
     {
