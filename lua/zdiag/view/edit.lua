@@ -16,26 +16,26 @@ local function get_mark_row(ctx, buf, mark_id)
 end
 
 
-local function collect_edits(ctx, view_buf, blocks)
+local function collect_edits(view)
   local edits = {}
 
-  for _, block in ipairs(blocks) do
+  for _, block in ipairs(view.blocks) do
     local start_row = get_mark_row(
-      ctx,
-      view_buf,
+      view.ctx,
+      view.view_buf,
       block.start_mark
     )
 
     local end_row = get_mark_row(
-      ctx,
-      view_buf,
+      view.ctx,
+      view.view_buf,
       block.end_mark
     )
 
     if start_row and end_row then
       local edited_lines =
           vim.api.nvim_buf_get_lines(
-            view_buf,
+            view.view_buf,
             start_row,
             end_row,
             false
@@ -53,8 +53,11 @@ local function collect_edits(ctx, view_buf, blocks)
   return edits
 end
 
-function M.apply_changes(ctx, view_buf, blocks)
-  local edits = collect_edits(ctx, view_buf, blocks)
+---apply changes from the view to the source files
+---
+---@param view zdiag.View
+function M.apply_changes(view)
+  local edits = collect_edits(view)
 
   -- 同じファイル内では後ろから適用する。
   -- 前方で行が増減しても後方rangeの位置がずれない。
@@ -114,7 +117,7 @@ function M.apply_changes(ctx, view_buf, blocks)
     end
   end
 
-  require("zdiag.buffer").mark_modified(ctx, view_buf)
+  require("zdiag.buffer").mark_modified(view.bufnr)
 
   vim.notify(
     "zdiag: changes written to source files",

@@ -1,6 +1,9 @@
 local M = {}
 
-function M.apply_decoration(ctx, buf, view)
+---apply decorations to the view
+---
+---@param view zdiag.View
+function M.apply_decoration(view)
   for _, decoration in ipairs(view.decorations) do
     if decoration.type == "line" then
       local prefix =
@@ -10,8 +13,8 @@ function M.apply_decoration(ctx, buf, view)
           )
 
       vim.api.nvim_buf_set_extmark(
-        buf,
-        ctx.ns,
+        view.bufnr,
+        view.ctx.ns,
         decoration.row,
         0,
         {
@@ -31,8 +34,8 @@ function M.apply_decoration(ctx, buf, view)
           decoration.diagnostic
 
       vim.api.nvim_buf_set_extmark(
-        buf,
-        ctx.ns,
+        view.bufnr,
+        view.ctx.ns,
         decoration.row,
         decoration.col,
         {

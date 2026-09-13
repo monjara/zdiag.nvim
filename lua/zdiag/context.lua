@@ -1,11 +1,15 @@
-local M = {}
+---@class zdiag.Context
+---@field ns number
 
-function M.build_context()
+local Context = {}
+Context.__index = Context
+
+function Context:new()
   local ns = vim.api.nvim_create_namespace("zdiag")
 
-  return {
-    ns = ns,
-  }
+  return setmetatable({
+    ns = ns
+  }, Context)
 end
 
-return M
+return Context

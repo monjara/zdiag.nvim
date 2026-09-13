@@ -1,29 +1,21 @@
 local M = {}
 
 function M.open()
-  local ctx = require("zdiag.context").build_context()
+  local Context = require("zdiag.context")
+  local ctx = Context:new()
 
   local diagnostics = require("zdiag.diagnostic").get_diagnostics(ctx)
   local groups, order = require("zdiag.diagnostic").group_diagnostics(ctx, diagnostics)
 
-  local buf = require("zdiag.buffer").build_buffer(ctx)
-
-  local view = require("zdiag.view").build_view(ctx, buf, groups, order)
-
-  require("zdiag.view").render(ctx, buf, view)
-
-
-  -- jump
-  local function jump()
-    require('zdiag.jump').jump_to_source(ctx, buf, view.blocks)
-  end
+  local View = require("zdiag.view")
+  local view = View:new(ctx):build(groups, order):render()
 
   vim.keymap.set(
     "n",
     "<C-Space>",
-    jump,
+    function() view:jump() end,
     {
-      buffer = buf,
+      buffer = view.bufnr,
       desc = "zdiag: jump to source",
     }
   )
@@ -32,17 +24,17 @@ function M.open()
   vim.keymap.set(
     "n",
     "<C-@>",
-    jump,
+    function() view:jump() end,
     {
-      buffer = buf,
+      buffer = view.bufnr,
       desc = "zdiag: jump to source",
     }
   )
 
-  vim.api.nvim_set_current_buf(buf)
+  vim.api.nvim_set_current_buf(view.bufnr)
 
   -- acwrite bufferなのでここでmodifiedを落としておく
-  require("zdiag.buffer").mark_modified(ctx, buf)
+  require("zdiag.buffer").mark_modified(view.bufnr)
 end
 
 return M

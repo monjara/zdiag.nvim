@@ -1,9 +1,11 @@
 local M = {}
 
-function M.get_mark_row(ns, buf, mark_id)
+---@param view zdiag.View
+---@param mark_id integer
+function M.get_mark_row(view, mark_id)
   local position = vim.api.nvim_buf_get_extmark_by_id(
-    buf,
-    ns,
+    view.bufnr,
+    view.ctx.ns,
     mark_id,
     {}
   )

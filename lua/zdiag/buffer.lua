@@ -1,6 +1,6 @@
 local M = {}
 
-function M.build_buffer(ctx)
+function M.build_buffer()
   local bufnr = vim.api.nvim_create_buf(false, true)
   require("zdiag.log").debug("Buffer created with bufnr: " .. bufnr)
 
@@ -14,7 +14,7 @@ function M.build_buffer(ctx)
   return bufnr
 end
 
-function M.mark_modified(ctx, bufnr)
+function M.mark_modified(bufnr)
   vim.bo[bufnr].modified = false
 end
 
