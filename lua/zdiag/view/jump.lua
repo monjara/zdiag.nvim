@@ -1,17 +1,21 @@
 local M = {}
 
+local function is_float(winid)
+  local config = vim.api.nvim_win_get_config(winid)
+  return config.relative ~= ""
+end
+
 ---Find a window that is not showing the diagnostics view.
 ---
 ---@param view zdiag.View
 ---@return integer?
 local function find_target_window(view)
   for _, win in ipairs(vim.api.nvim_list_wins()) do
-    if vim.api.nvim_win_is_valid(win) then
-      local win_buf = vim.api.nvim_win_get_buf(win)
-
-      if win_buf ~= view.bufnr then
-        return win
-      end
+    if vim.api.nvim_win_is_valid(win)
+        and vim.api.nvim_win_get_buf(win) ~= view.bufnr
+        and not is_float(win)
+    then
+      return win
     end
   end
 
