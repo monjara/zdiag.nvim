@@ -1,12 +1,12 @@
 local M = {}
 
-local function find_block_at_cursor(ns, view_buf, blocks)
+local function find_block_at_cursor(ctx, view_buf, blocks)
   local cursor = vim.api.nvim_win_get_cursor(0)
   local row = cursor[1] - 1
 
   for _, block in ipairs(blocks) do
-    local start_row = require("zdiag.extmark").get_mark_row(ns, view_buf, block.start_mark)
-    local end_row = require("zdiag.extmark").get_mark_row(ns, view_buf, block.end_mark)
+    local start_row = require("zdiag.extmark").get_mark_row(ctx.ns, view_buf, block.start_mark)
+    local end_row = require("zdiag.extmark").get_mark_row(ctx.ns, view_buf, block.end_mark)
 
     if start_row and end_row then
       if row >= start_row and row < end_row then
@@ -20,7 +20,7 @@ end
 
 
 function M.jump_to_source(ctx, view_buf, blocks)
-  local block, offset = find_block_at_cursor(view_buf, blocks)
+  local block, offset = find_block_at_cursor(ctx, view_buf, blocks)
 
   if not block then
     vim.notify(
@@ -62,6 +62,5 @@ function M.jump_to_source(ctx, view_buf, blocks)
     { source_lnum + 1, col }
   )
 end
-
 
 return M

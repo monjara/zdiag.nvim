@@ -2,7 +2,7 @@ local M = {}
 
 function M.build_buffer(ctx)
   local bufnr = vim.api.nvim_create_buf(false, true)
-  print("Buffer created with bufnr: " .. bufnr)
+  require("zdiag.log").debug("Buffer created with bufnr: " .. bufnr)
 
   vim.bo[bufnr].buftype = "acwrite"
   vim.bo[bufnr].bufhidden = "wipe"

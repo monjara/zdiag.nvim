@@ -8,9 +8,6 @@ function M.open()
 
   local buf = require("zdiag.buffer").build_buffer(ctx)
 
-  print("ctx: ", ctx)
-  print("ctx.ns: ", ctx)
-
   local view = require("zdiag.view").build_view(ctx, buf, groups, order)
 
   require("zdiag.view").render(ctx, buf, view)

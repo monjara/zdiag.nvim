@@ -115,7 +115,6 @@ function M.build_view(ctx, buf, groups, order)
   -- block boundary
   --
 
-  print("Setting extmarks for blocks in view ctx.ns ", ctx.ns)
   for _, block in ipairs(view.blocks) do
     block.start_mark =
         vim.api.nvim_buf_set_extmark(
