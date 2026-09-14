@@ -1,19 +1,50 @@
-local M = {}
+---@class zdiag.View
+---@field ctx zdiag.Context
+---@field bufnr integer
+---@field lines string[]
+---@field blocks zdiag.Block[]
+---@field decorations zdiag.Decoration[]
+---@field jump fun(self: zdiag.View): nil
+---@field build fun(self: zdiag.View, range_groups: table<integer, any[]>, order: integer[]): zdiag.View
+---@field render fun(self: zdiag.View): zdiag.View
+---@field mark_unmodified fun(self: zdiag.View): nil
+---@field new fun(self: zdiag.View, ctx: zdiag.Context): zdiag.View
 
-function M.build_view(ctx, buf, groups, order)
-  local view = {
+local View = {}
+View.__index = View
+
+---Create a new view instance.
+---
+---@param ctx zdiag.Context
+---@return zdiag.View
+function View:new(ctx)
+  local bufnr = require("zdiag.buffer").build_buffer()
+
+  return setmetatable({
+    ctx = ctx,
+    bufnr = bufnr,
     lines = {},
     blocks = {},
     decorations = {}
-  }
+  }, self)
+end
+
+---Build the view from the given diagnostic ranges and order.
+---
+---@param range_groups table<integer, { start_line: integer, end_line: integer, diagnostics: vim.Diagnostic[] }[]>
+---@param order integer[]
+---@return zdiag.View
+function View:build(range_groups, order)
+  local Block = require("zdiag.view.block")
+  local Decoration = require("zdiag.view.decoration")
 
   for _, bufnr in ipairs(order) do
     if not vim.api.nvim_buf_is_loaded(bufnr) then
       vim.fn.bufload(bufnr)
     end
 
-    if #view.lines > 0 then
-      table.insert(view.lines, "")
+    if #self.lines > 0 then
+      table.insert(self.lines, "")
     end
 
     local name =
@@ -22,13 +53,11 @@ function M.build_view(ctx, buf, groups, order)
     local relative =
         vim.fn.fnamemodify(name, ":.")
 
-    table.insert(view.lines, "▼ " .. relative)
-    table.insert(view.lines, "")
-
-    local buffer_diagnostics = groups[bufnr]
+    table.insert(self.lines, "▼ " .. relative)
+    table.insert(self.lines, "")
 
     local ranges =
-        require("zdiag.diagnostic").build_diagnostics_ranges(ctx, buffer_diagnostics, 2)
+        range_groups[bufnr] or {}
 
     local line_count =
         vim.api.nvim_buf_line_count(bufnr)
@@ -51,30 +80,31 @@ function M.build_view(ctx, buf, groups, order)
             false
           )
 
-      local view_start = #view.lines
+      local view_start = #self.lines
 
       for index, source_line in ipairs(source_lines) do
         local source_lnum =
             start_line + index - 1
 
-        table.insert(view.lines, source_line)
+        table.insert(self.lines, source_line)
 
-        local view_row = #view.lines - 1
+        local view_row = #self.lines - 1
 
-        table.insert(view.decorations, {
-          type = "line",
-          row = view_row,
-          source_lnum = source_lnum,
-        })
+        table.insert(
+          self.decorations,
+          Decoration:new_line(view_row, source_lnum)
+        )
 
         for _, diagnostic in ipairs(range.diagnostics) do
           if diagnostic.lnum == source_lnum then
-            table.insert(view.decorations, {
-              type = "diagnostic",
-              row = view_row,
-              col = diagnostic.col,
-              diagnostic = diagnostic,
-            })
+            table.insert(
+              self.decorations,
+              Decoration:new_diagnostic(
+                view_row,
+                diagnostic.col,
+                diagnostic
+              )
+            )
           end
         end
       end
@@ -82,82 +112,61 @@ function M.build_view(ctx, buf, groups, order)
       -- block末尾を示すためのseparator。
       -- end_markはこの行に置くので、
       -- source部分は [start_mark, end_mark) になる。
-      local separator_row = #view.lines
-      table.insert(view.lines, "")
+      local separator_row = #self.lines
+      table.insert(self.lines, "")
 
-      table.insert(view.blocks, {
-        bufnr = bufnr,
+      table.insert(
+        self.blocks,
+        Block:new({
+          bufnr = bufnr,
 
-        source_start = start_line,
+          source_start = start_line,
 
-        -- nvim_buf_set_lines() のendはexclusive
-        source_end = end_line + 1,
+          -- nvim_buf_set_lines() のendはexclusive
+          source_end = end_line + 1,
 
-        view_start = view_start,
-        view_end = separator_row,
-      })
+          view_start = view_start,
+          view_end = separator_row,
+        })
+      )
     end
   end
 
-  if #view.lines == 0 then
-    table.insert(view.lines, "No diagnostics")
+  if #self.lines == 0 then
+    table.insert(self.lines, "No diagnostics")
   end
 
-  vim.api.nvim_buf_set_lines(
-    buf,
-    0,
-    -1,
-    false,
-    view.lines
-  )
+  return self
+end
 
-  --
-  -- block boundary
-  --
+---Render the view.
+---
+---@return zdiag.View
+function View:render()
+  require("zdiag.view.line").write_lines(self)
 
-  for _, block in ipairs(view.blocks) do
-    block.start_mark =
-        vim.api.nvim_buf_set_extmark(
-          buf,
-          ctx.ns,
-          block.view_start,
-          0,
-          {
-            right_gravity = false,
-          }
-        )
-
-    block.end_mark =
-        vim.api.nvim_buf_set_extmark(
-          buf,
-          ctx.ns,
-          block.view_end,
-          0,
-          {
-            right_gravity = true,
-          }
-        )
-
-    block.view_start = nil
-    block.view_end = nil
+  for _, block in ipairs(self.blocks) do
+    block:attach_mark(self)
   end
 
-  return view
+  for _, decoration in ipairs(self.decorations) do
+    decoration:apply(self)
+  end
+
+  require("zdiag.view.autocmd").create_autocmd(self)
+  self:mark_unmodified()
+
+  return self
 end
 
-function M.render(ctx, buf, view)
-  require("zdiag.view.decoration").apply_decoration(ctx, buf, view)
-
-  vim.api.nvim_create_autocmd(
-    "BufWriteCmd",
-    {
-      buffer = buf,
-
-      callback = function()
-        require("zdiag.view.edit").apply_changes(ctx, buf, view.blocks)
-      end,
-    }
-  )
+---Clear the modified flag on the view buffer.
+function View:mark_unmodified()
+  require("zdiag.buffer").mark_modified(self.bufnr)
 end
 
-return M
+---Jump to the source of the diagnostic under the cursor.
+function View:jump()
+  require('zdiag.view.jump').jump_to_source(self)
+end
+
+return View

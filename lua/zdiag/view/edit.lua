@@ -1,41 +1,20 @@
 local M = {}
 
-local function get_mark_row(ctx, buf, mark_id)
-  local position = vim.api.nvim_buf_get_extmark_by_id(
-    buf,
-    ctx.ns,
-    mark_id,
-    {}
-  )
 
-  if #position == 0 then
-    return nil
-  end
-
-  return position[1]
-end
-
-
-local function collect_edits(ctx, view_buf, blocks)
+---Collect edited source blocks from the diagnostics view.
+---
+---@param view zdiag.View
+---@return { bufnr: integer, source_start: integer, source_end: integer, lines: string[] }[]
+local function collect_edits(view)
   local edits = {}
 
-  for _, block in ipairs(blocks) do
-    local start_row = get_mark_row(
-      ctx,
-      view_buf,
-      block.start_mark
-    )
-
-    local end_row = get_mark_row(
-      ctx,
-      view_buf,
-      block.end_mark
-    )
+  for _, block in ipairs(view.blocks) do
+    local start_row, end_row = block:get_view_range(view)
 
     if start_row and end_row then
       local edited_lines =
           vim.api.nvim_buf_get_lines(
-            view_buf,
+            view.bufnr,
             start_row,
             end_row,
             false
@@ -53,8 +32,11 @@ local function collect_edits(ctx, view_buf, blocks)
   return edits
 end
 
-function M.apply_changes(ctx, view_buf, blocks)
-  local edits = collect_edits(ctx, view_buf, blocks)
+---Apply changes from the view to the source files.
+---
+---@param view zdiag.View
+function M.apply_changes(view)
+  local edits = collect_edits(view)
 
   -- 同じファイル内では後ろから適用する。
   -- 前方で行が増減しても後方rangeの位置がずれない。
@@ -114,7 +96,7 @@ function M.apply_changes(ctx, view_buf, blocks)
     end
   end
 
-  require("zdiag.buffer").mark_modified(ctx, view_buf)
+  view:mark_unmodified()
 
   vim.notify(
     "zdiag: changes written to source files",

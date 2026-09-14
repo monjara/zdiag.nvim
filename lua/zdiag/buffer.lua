@@ -1,6 +1,9 @@
 local M = {}
 
-function M.build_buffer(ctx)
+---Create the editable diagnostics view buffer.
+---
+---@return integer bufnr
+function M.build_buffer()
   local bufnr = vim.api.nvim_create_buf(false, true)
   require("zdiag.log").debug("Buffer created with bufnr: " .. bufnr)
 
@@ -14,7 +17,10 @@ function M.build_buffer(ctx)
   return bufnr
 end
 
-function M.mark_modified(ctx, bufnr)
+---Clear the modified flag on a diagnostics view buffer.
+---
+---@param bufnr integer
+function M.mark_modified(bufnr)
   vim.bo[bufnr].modified = false
 end
 

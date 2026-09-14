@@ -1,5 +1,9 @@
 local M = {}
 
+---Return the highlight group for a diagnostic severity.
+---
+---@param severity vim.diagnostic.Severity
+---@return string
 function M.severity_hl(severity)
   if severity == vim.diagnostic.severity.ERROR then
     return "DiagnosticError"
