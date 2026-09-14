@@ -40,34 +40,16 @@ local function prepare_window(view)
 end
 
 
----Find the source block at the current cursor position.
----
----@param view zdiag.View
----@return zdiag.Block?
----@return integer?
-local function find_block_at_cursor(view)
-  local cursor = vim.api.nvim_win_get_cursor(0)
-  local row = cursor[1] - 1
-
-  for _, block in ipairs(view.blocks) do
-    local start_row, end_row = block:get_view_range(view)
-
-    if start_row and end_row then
-      if row >= start_row and row < end_row then
-        return block, row - start_row
-      end
-    end
-  end
-
-  return nil, nil
-end
-
-
 ---Jump to the source line corresponding to the current cursor position in the view.
 ---
 ---@param view zdiag.View
 function M.jump_to_source(view)
-  local block, offset = find_block_at_cursor(view)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local block, offset =
+      require("zdiag.view.source").find_block(
+        view,
+        cursor[1] - 1
+      )
 
   if not block then
     vim.notify(
@@ -77,7 +59,6 @@ function M.jump_to_source(view)
     return
   end
 
-  local cursor = vim.api.nvim_win_get_cursor(0)
   local col = cursor[2]
 
   local source_lnum = block.source_start + offset

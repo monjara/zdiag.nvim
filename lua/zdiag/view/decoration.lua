@@ -1,26 +1,13 @@
 ---@class zdiag.Decoration
----@field type "line"|"diagnostic"
 ---@field row integer
----@field source_lnum integer?
----@field col integer?
----@field diagnostic vim.Diagnostic?
+---@field col integer
+---@field diagnostic vim.Diagnostic
+---@field mark_id integer?
 ---@field apply fun(self: zdiag.Decoration, view: zdiag.View): nil
+---@field get_position fun(self: zdiag.Decoration, view: zdiag.View): integer?, integer?
 
 local Decoration = {}
 Decoration.__index = Decoration
-
----Create a line-number decoration.
----
----@param row integer
----@param source_lnum integer
----@return zdiag.Decoration
-function Decoration:new_line(row, source_lnum)
-  return setmetatable({
-    type = "line",
-    row = row,
-    source_lnum = source_lnum,
-  }, self)
-end
 
 ---Create a diagnostic decoration.
 ---
@@ -30,7 +17,6 @@ end
 ---@return zdiag.Decoration
 function Decoration:new_diagnostic(row, col, diagnostic)
   return setmetatable({
-    type = "diagnostic",
     row = row,
     col = col,
     diagnostic = diagnostic,
@@ -41,65 +27,85 @@ end
 ---
 ---@param view zdiag.View
 function Decoration:apply(view)
-  if self.type == "line" then
-    local prefix =
-        string.format(
-          "%4d │ ",
-          self.source_lnum + 1
-        )
+  local diagnostic =
+      self.diagnostic
 
-    vim.api.nvim_buf_set_extmark(
-      view.bufnr,
-      view.ctx.ns,
-      self.row,
-      0,
-      {
-        virt_text = {
-          {
-            prefix,
-            "LineNr",
-          },
-        },
+  local line =
+      vim.api.nvim_buf_get_lines(
+        view.bufnr,
+        self.row,
+        self.row + 1,
+        false
+      )[1] or ""
 
-        -- buffer本文には行番号を入れない
-        virt_text_pos = "inline",
-      }
-    )
-  elseif self.type == "diagnostic" then
-    local diagnostic =
-        self.diagnostic
+  local col =
+      math.min(self.col, #line)
 
-    vim.api.nvim_buf_set_extmark(
-      view.bufnr,
-      view.ctx.ns,
-      self.row,
-      self.col,
-      {
-        end_col = math.max(
-          self.col + 1,
+  local end_col =
+      math.min(
+        math.max(
+          col,
           diagnostic.end_col
-          or self.col + 1
+          or col + 1
         ),
+        #line
+      )
 
-        hl_group =
-            require("zdiag.highlight").severity_hl(
-              diagnostic.severity
-            ),
+  local opts = {
+    virt_text = {
+      {
+        "  "
+        .. diagnostic.message,
+        require("zdiag.highlight").severity_hl(
+          diagnostic.severity
+        ),
+      },
+    },
 
-        virt_text = {
-          {
-            "  "
-            .. diagnostic.message,
-            require("zdiag.highlight").severity_hl(
-              diagnostic.severity
-            ),
-          },
-        },
+    virt_text_pos = "eol",
+  }
 
-        virt_text_pos = "eol",
-      }
-    )
+  if end_col > col then
+    opts.end_col = end_col
+    opts.hl_group =
+        require("zdiag.highlight").severity_hl(
+          diagnostic.severity
+        )
   end
+
+  self.mark_id =
+      vim.api.nvim_buf_set_extmark(
+        view.bufnr,
+        view.ctx.ns,
+        self.row,
+        col,
+        opts
+      )
+end
+
+---Return the decoration's current position in the editable view.
+---
+---@param view zdiag.View
+---@return integer? row
+---@return integer? col
+function Decoration:get_position(view)
+  if not self.mark_id then
+    return nil, nil
+  end
+
+  local position =
+      vim.api.nvim_buf_get_extmark_by_id(
+        view.bufnr,
+        view.ctx.ns,
+        self.mark_id,
+        {}
+      )
+
+  if #position == 0 then
+    return nil, nil
+  end
+
+  return position[1], position[2]
 end
 
 return Decoration

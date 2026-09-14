@@ -55,9 +55,7 @@ function M.apply_changes(view)
       goto continue
     end
 
-    if not vim.api.nvim_buf_is_loaded(edit.bufnr) then
-      vim.fn.bufload(edit.bufnr)
-    end
+    require("zdiag.buffer").ensure_loaded(edit.bufnr)
 
     vim.api.nvim_buf_set_lines(
       edit.bufnr,
@@ -97,6 +95,8 @@ function M.apply_changes(view)
   end
 
   view:mark_unmodified()
+
+  require("zdiag.view.autocmd").schedule_reload(view)
 
   vim.notify(
     "zdiag: changes written to source files",

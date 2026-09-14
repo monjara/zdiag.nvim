@@ -1,12 +1,16 @@
 local M = {}
 
----Get all diagnostics and sort them by buffer, line, and column.
----
----@param _ctx zdiag.Context
----@return vim.Diagnostic[]
-function M.get_diagnostics(_ctx)
-  local diagnostics = vim.diagnostic.get(nil)
+---@class zdiag.BufferDiagnostics
+---@field bufnr integer
+---@field diagnostics vim.Diagnostic[]
 
+---@class zdiag.DiagnosticRange
+---@field start_line integer
+---@field end_line integer
+---@field diagnostics vim.Diagnostic[]
+
+---@param diagnostics vim.Diagnostic[]
+local function sort_by_position(diagnostics)
   table.sort(diagnostics, function(a, b)
     if a.bufnr ~= b.bufnr then
       return a.bufnr < b.bufnr
@@ -18,47 +22,50 @@ function M.get_diagnostics(_ctx)
 
     return a.col < b.col
   end)
-
-  return diagnostics
 end
 
----Group diagnostics by source buffer.
----
----@param _ctx zdiag.Context
 ---@param diagnostics vim.Diagnostic[]
----@return table<integer, vim.Diagnostic[]> groups
----@return integer[] order
-function M.group_diagnostics(_ctx, diagnostics)
-  local groups = {}
-  local order = {}
+---@return zdiag.BufferDiagnostics[]
+local function group_by_buffer(diagnostics)
+  local buffers = {}
 
   for _, diagnostic in ipairs(diagnostics) do
-    local bufnr = diagnostic.bufnr
+    local buffer = buffers[#buffers]
 
-    if not groups[bufnr] then
-      groups[bufnr] = {}
-      table.insert(order, bufnr)
+    if not buffer or buffer.bufnr ~= diagnostic.bufnr then
+      buffer = {
+        bufnr = diagnostic.bufnr,
+        diagnostics = {},
+      }
+      table.insert(buffers, buffer)
     end
 
-    table.insert(groups[bufnr], diagnostic)
+    table.insert(buffer.diagnostics, diagnostic)
   end
 
-  return groups, order
+  return buffers
 end
 
----Build merged source-line ranges around diagnostics.
+---Get all diagnostics, ordered and grouped by source buffer.
 ---
----@param _ctx zdiag.Context
+---@return zdiag.BufferDiagnostics[]
+function M.get_by_buffer()
+  local diagnostics = vim.diagnostic.get(nil)
+  sort_by_position(diagnostics)
+  return group_by_buffer(diagnostics)
+end
+
+---Build merged source-line ranges around diagnostics from one buffer.
+---
 ---@param diagnostics vim.Diagnostic[]
----@param range integer
----@return { start_line: integer, end_line: integer, diagnostics: vim.Diagnostic[] }[]
-function M.build_diagnostics_ranges(_ctx, diagnostics, range)
+---@param context_lines integer
+---@return zdiag.DiagnosticRange[]
+function M.build_ranges(diagnostics, context_lines)
   local ranges = {}
 
   for _, diagnostic in ipairs(diagnostics) do
-    local start_line = math.max(0, diagnostic.lnum - range)
-    local end_line = diagnostic.lnum + range
-
+    local start_line = math.max(0, diagnostic.lnum - context_lines)
+    local end_line = diagnostic.lnum + context_lines
     local last = ranges[#ranges]
 
     if last and start_line <= last.end_line + 1 then

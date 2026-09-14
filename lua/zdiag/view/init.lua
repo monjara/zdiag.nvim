@@ -4,14 +4,23 @@
 ---@field lines string[]
 ---@field blocks zdiag.Block[]
 ---@field decorations zdiag.Decoration[]
+---@field line_highlights zdiag.LineHighlight[]
+---@field reload_pending boolean?
 ---@field jump fun(self: zdiag.View): nil
----@field build fun(self: zdiag.View, range_groups: table<integer, any[]>, order: integer[]): zdiag.View
+---@field build fun(self: zdiag.View, buffers: zdiag.BufferDiagnostics[]): zdiag.View
 ---@field render fun(self: zdiag.View): zdiag.View
+---@field reset fun(self: zdiag.View): zdiag.View
 ---@field mark_unmodified fun(self: zdiag.View): nil
+---@field with_source fun(self: zdiag.View, callback: fun()): boolean, any
+---@field code_action fun(self: zdiag.View, opts?: vim.lsp.buf.code_action.Opts): nil
+---@field diagnostic_open_float fun(self: zdiag.View, opts?: vim.diagnostic.Opts.Float): integer?
+---@field diagnostic_jump fun(self: zdiag.View, opts: vim.diagnostic.JumpOpts): vim.Diagnostic?
 ---@field new fun(self: zdiag.View, ctx: zdiag.Context): zdiag.View
 
 local View = {}
 View.__index = View
+
+local CONTEXT_LINES = 2
 
 ---Create a new view instance.
 ---
@@ -25,23 +34,25 @@ function View:new(ctx)
     bufnr = bufnr,
     lines = {},
     blocks = {},
-    decorations = {}
+    decorations = {},
+    line_highlights = {},
   }, self)
 end
 
----Build the view from the given diagnostic ranges and order.
+---Build the view from diagnostics grouped by source buffer.
 ---
----@param range_groups table<integer, { start_line: integer, end_line: integer, diagnostics: vim.Diagnostic[] }[]>
----@param order integer[]
+---@param buffers zdiag.BufferDiagnostics[]
 ---@return zdiag.View
-function View:build(range_groups, order)
+function View:build(buffers)
   local Block = require("zdiag.view.block")
   local Decoration = require("zdiag.view.decoration")
+  local Diagnostic = require("zdiag.diagnostic")
+  local LineHighlight =
+      require("zdiag.view.line_highlight")
 
-  for _, bufnr in ipairs(order) do
-    if not vim.api.nvim_buf_is_loaded(bufnr) then
-      vim.fn.bufload(bufnr)
-    end
+  for _, buffer in ipairs(buffers) do
+    local bufnr = buffer.bufnr
+    require("zdiag.buffer").ensure_loaded(bufnr)
 
     if #self.lines > 0 then
       table.insert(self.lines, "")
@@ -56,8 +67,10 @@ function View:build(range_groups, order)
     table.insert(self.lines, "▼ " .. relative)
     table.insert(self.lines, "")
 
-    local ranges =
-        range_groups[bufnr] or {}
+    local ranges = Diagnostic.build_ranges(
+      buffer.diagnostics,
+      CONTEXT_LINES
+    )
 
     local line_count =
         vim.api.nvim_buf_line_count(bufnr)
@@ -65,6 +78,10 @@ function View:build(range_groups, order)
     for _, range in ipairs(ranges) do
       local start_line =
           range.start_line
+
+      if start_line >= line_count then
+        break
+      end
 
       local end_line =
           math.min(
@@ -89,14 +106,17 @@ function View:build(range_groups, order)
         table.insert(self.lines, source_line)
 
         local view_row = #self.lines - 1
-
-        table.insert(
-          self.decorations,
-          Decoration:new_line(view_row, source_lnum)
-        )
+        local highest_severity
 
         for _, diagnostic in ipairs(range.diagnostics) do
           if diagnostic.lnum == source_lnum then
+            highest_severity =
+                math.min(
+                  highest_severity
+                  or vim.diagnostic.severity.HINT,
+                  diagnostic.severity
+                )
+
             table.insert(
               self.decorations,
               Decoration:new_diagnostic(
@@ -106,6 +126,16 @@ function View:build(range_groups, order)
               )
             )
           end
+        end
+
+        if highest_severity then
+          table.insert(
+            self.line_highlights,
+            LineHighlight:new(
+              view_row,
+              highest_severity
+            )
+          )
         end
       end
 
@@ -145,8 +175,28 @@ end
 function View:render()
   require("zdiag.view.line").write_lines(self)
 
+  local highlighted_buffers = {}
+
+  for _, block in ipairs(self.blocks) do
+    if not highlighted_buffers[block.bufnr] then
+      highlighted_buffers[block.bufnr] = true
+
+      if require("zdiag.highlight").start_treesitter(
+            self.bufnr,
+            block.bufnr
+          )
+      then
+        break
+      end
+    end
+  end
+
   for _, block in ipairs(self.blocks) do
     block:attach_mark(self)
+  end
+
+  for _, line_highlight in ipairs(self.line_highlights) do
+    line_highlight:apply(self)
   end
 
   for _, decoration in ipairs(self.decorations) do
@@ -159,6 +209,31 @@ function View:render()
   return self
 end
 
+---Reset rendered state before rebuilding the view.
+---
+---@return zdiag.View
+function View:reset()
+  if vim.treesitter
+      and type(vim.treesitter.stop) == "function"
+  then
+    pcall(vim.treesitter.stop, self.bufnr)
+  end
+
+  vim.api.nvim_buf_clear_namespace(
+    self.bufnr,
+    self.ctx.ns,
+    0,
+    -1
+  )
+
+  self.lines = {}
+  self.blocks = {}
+  self.decorations = {}
+  self.line_highlights = {}
+
+  return self
+end
+
 ---Clear the modified flag on the view buffer.
 function View:mark_unmodified()
   require("zdiag.buffer").mark_modified(self.bufnr)
@@ -167,6 +242,45 @@ end
 ---Jump to the source of the diagnostic under the cursor.
 function View:jump()
   require('zdiag.view.jump').jump_to_source(self)
+end
+
+---Run a callback in the source buffer context under the cursor.
+---
+---@param callback fun(): any
+---@return boolean executed
+---@return any result
+function View:with_source(callback)
+  return require("zdiag.view.source").call(
+    self,
+    callback
+  )
+end
+
+---Request LSP code actions for the source position under the cursor.
+---
+---@param opts? vim.lsp.buf.code_action.Opts
+function View:code_action(opts)
+  require("zdiag.view.lsp").code_action(self, opts)
+end
+
+---Open diagnostics for the source position under the cursor.
+---
+---@param opts? vim.diagnostic.Opts.Float
+---@return integer? float_bufnr
+function View:diagnostic_open_float(opts)
+  return require("zdiag.view.diagnostic")
+      .open_float(self, opts)
+end
+
+---Move to another diagnostic in the diagnostics view.
+---
+---@param opts vim.diagnostic.JumpOpts
+---@return vim.Diagnostic?
+function View:diagnostic_jump(opts)
+  return require("zdiag.view.diagnostic").jump(
+    self,
+    opts
+  )
 end
 
 return View
