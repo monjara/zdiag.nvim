@@ -1,10 +1,26 @@
 local M = {}
 
+---@param left string[]
+---@param right string[]
+---@return boolean
+local function same_lines(left, right)
+  if #left ~= #right then
+    return false
+  end
+
+  for index, line in ipairs(left) do
+    if line ~= right[index] then
+      return false
+    end
+  end
+
+  return true
+end
 
 ---Collect edited source blocks from the diagnostics view.
 ---
 ---@param view zdiag.View
----@return { bufnr: integer, source_start: integer, source_end: integer, lines: string[] }[]
+---@return { block: zdiag.Block, bufnr: integer, source_start: integer, source_end: integer, lines: string[] }[]
 local function collect_edits(view)
   local edits = {}
 
@@ -20,16 +36,52 @@ local function collect_edits(view)
             false
           )
 
-      table.insert(edits, {
-        bufnr = block.bufnr,
-        source_start = block.source_start,
-        source_end = block.source_end,
-        lines = edited_lines,
-      })
+      if not same_lines(edited_lines, block.original_lines) then
+        table.insert(edits, {
+          block = block,
+          bufnr = block.bufnr,
+          source_start = block.source_start,
+          source_end = block.source_end,
+          lines = edited_lines,
+        })
+      end
     end
   end
 
   return edits
+end
+
+---Update source ranges after an edit changes a block's line count.
+---
+---Blocks do not overlap, so only blocks after the edited source range move.
+---Keeping these ranges current makes another write safe before the scheduled
+---diagnostic reload has rebuilt the view.
+---
+---@param view zdiag.View
+---@param edit { block: zdiag.Block, bufnr: integer, source_start: integer, source_end: integer, lines: string[] }
+local function update_source_ranges(view, edit)
+  local line_delta =
+      #edit.lines
+      - (edit.source_end - edit.source_start)
+
+  edit.block.source_end =
+      edit.source_start + #edit.lines
+
+  if line_delta == 0 then
+    return
+  end
+
+  for _, block in ipairs(view.blocks) do
+    if block ~= edit.block
+        and block.bufnr == edit.bufnr
+        and block.source_start >= edit.source_end
+    then
+      block.source_start =
+          block.source_start + line_delta
+      block.source_end =
+          block.source_end + line_delta
+    end
+  end
 end
 
 ---Apply changes from the view to the source files.
@@ -65,6 +117,7 @@ function M.apply_changes(view)
       edit.lines
     )
 
+    update_source_ranges(view, edit)
     touched_buffers[edit.bufnr] = true
 
     ::continue::
@@ -92,6 +145,10 @@ function M.apply_changes(view)
         return
       end
     end
+  end
+
+  for _, edit in ipairs(edits) do
+    edit.block.original_lines = vim.deepcopy(edit.lines)
   end
 
   view:mark_unmodified()

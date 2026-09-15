@@ -1,49 +1,31 @@
 local M = {}
 
-local function is_float(winid)
-  local config = vim.api.nvim_win_get_config(winid)
-  return config.relative ~= ""
-end
-
----Find a window that is not showing the diagnostics view.
----
----@param view zdiag.View
----@return integer?
-local function find_target_window(view)
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    if vim.api.nvim_win_is_valid(win)
-        and vim.api.nvim_win_get_buf(win) ~= view.bufnr
-        and not is_float(win)
-    then
-      return win
-    end
-  end
-
-  return nil
-end
-
 ---Prepare a target window for jumping to source.
 ---
----@param view zdiag.View
+---@param mode zdiag.JumpMode
 ---@return integer
-local function prepare_window(view)
-  local target_win = find_target_window(view)
-
-  if target_win then
-    vim.api.nvim_set_current_win(target_win)
-  else
+local function prepare_window(mode)
+  if mode == "split" then
     vim.cmd("split")
-    target_win = vim.api.nvim_get_current_win()
   end
 
-  return target_win
+  return vim.api.nvim_get_current_win()
 end
 
+---Delete the diagnostics view after a successful close-mode jump.
+---
+---@param view zdiag.View
+local function close_view(view)
+  vim.api.nvim_buf_delete(view.bufnr, { force = false })
+  view.closed = true
+  require("zdiag.view.autocmd").remove_autocmd(view)
+end
 
 ---Jump to the source line corresponding to the current cursor position in the view.
 ---
 ---@param view zdiag.View
-function M.jump_to_source(view)
+---@param opts? zdiag.JumpOpts
+function M.jump_to_source(view, opts)
   local cursor = vim.api.nvim_win_get_cursor(0)
   local block, offset =
       require("zdiag.view.source").find_block(
@@ -55,6 +37,16 @@ function M.jump_to_source(view)
     vim.notify(
       "zdiag: cursor is not on a source line",
       vim.log.levels.INFO
+    )
+    return
+  end
+
+  local mode = require("zdiag.config").get_jump_mode(opts)
+
+  if mode == "close" and vim.bo[view.bufnr].modified then
+    vim.notify(
+      "zdiag: write or discard view changes before a close-mode jump",
+      vim.log.levels.WARN
     )
     return
   end
@@ -71,7 +63,7 @@ function M.jump_to_source(view)
     math.max(0, source_line_count - 1)
   )
 
-  local target_win = prepare_window(view)
+  local target_win = prepare_window(mode)
 
   vim.api.nvim_win_set_buf(target_win, block.bufnr)
 
@@ -89,6 +81,10 @@ function M.jump_to_source(view)
     target_win,
     { source_lnum + 1, col }
   )
+
+  if mode == "close" then
+    close_view(view)
+  end
 end
 
 return M

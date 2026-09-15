@@ -112,15 +112,30 @@ end
 ---@return { row: integer, col: integer, diagnostic: vim.Diagnostic }[]
 local function collect(view, opts)
   local entries = {}
+  local positions = {}
+
+  local extmarks = vim.api.nvim_buf_get_extmarks(
+    view.bufnr,
+    view.ctx.ns,
+    0,
+    -1,
+    { type = "virt_text" }
+  )
+
+  for _, extmark in ipairs(extmarks) do
+    positions[extmark[1]] = extmark
+  end
 
   for _, decoration in ipairs(view.decorations) do
-    local row, col = decoration:get_position(view)
+    local position =
+        decoration.mark_id
+        and positions[decoration.mark_id]
     local diagnostic = decoration.diagnostic
 
-    if row and col and matches_filters(diagnostic, opts) then
+    if position and matches_filters(diagnostic, opts) then
       table.insert(entries, {
-        row = row,
-        col = col,
+        row = position[2],
+        col = position[3],
         diagnostic = diagnostic,
       })
     end

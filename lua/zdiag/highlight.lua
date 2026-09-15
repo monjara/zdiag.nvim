@@ -12,6 +12,8 @@ local line_highlight_groups = {
 }
 
 local header_highlight_group = "ZdiagHeader"
+local separator_highlight_group = "ZdiagSeparator"
+local line_highlight_cache = {}
 
 ---Start Tree-sitter highlighting using the source buffer's language.
 ---
@@ -81,11 +83,33 @@ function M.header_hl()
   return header_highlight_group
 end
 
+---Define and return the source-block separator highlight group.
+---
+---@return string
+function M.separator_hl()
+  vim.api.nvim_set_hl(
+    0,
+    separator_highlight_group,
+    {
+      default = true,
+      link = "NonText",
+    }
+  )
+
+  return separator_highlight_group
+end
+
 ---Copy only the theme-provided background into a zdiag line group.
 ---
 ---@param severity vim.diagnostic.Severity
 ---@return string?
 function M.line_hl(severity)
+  local cached = line_highlight_cache[severity]
+
+  if cached ~= nil then
+    return cached or nil
+  end
+
   local source_group =
       require("zdiag.config")
           .get_line_highlight(severity)
@@ -93,6 +117,7 @@ function M.line_hl(severity)
       line_highlight_groups[severity]
 
   if not source_group or not target_group then
+    line_highlight_cache[severity] = false
     return nil
   end
 
@@ -128,12 +153,20 @@ function M.line_hl(severity)
     background
   )
 
+  line_highlight_cache[severity] = target_group
   return target_group
+end
+
+---Clear cached diagnostic-line highlight groups.
+function M.invalidate_line_highlights()
+  line_highlight_cache = {}
 end
 
 ---Refresh derived line groups after a colorscheme change.
 function M.refresh_line_highlights()
+  M.invalidate_line_highlights()
   M.header_hl()
+  M.separator_hl()
 
   for severity in pairs(line_highlight_groups) do
     M.line_hl(severity)

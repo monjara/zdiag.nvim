@@ -68,21 +68,6 @@ function M.open()
 	local view = build_view(View:new(ctx))
 	active_view = view
 
-	vim.keymap.set("n", "<C-Space>", function()
-		view:jump()
-	end, {
-		buffer = view.bufnr,
-		desc = "zdiag: jump to source",
-	})
-
-	-- terminalによってCtrl-SpaceがCtrl-@として届く場合用
-	vim.keymap.set("n", "<C-@>", function()
-		view:jump()
-	end, {
-		buffer = view.bufnr,
-		desc = "zdiag: jump to source",
-	})
-
 	vim.api.nvim_buf_create_user_command(view.bufnr, "ZdiagCodeAction", function()
 		view:code_action()
 	end, {
@@ -91,6 +76,29 @@ function M.open()
 
 	vim.api.nvim_set_current_buf(view.bufnr)
 	vim.bo[view.bufnr].filetype = "zdiag"
+end
+
+---Jump from the active diagnostics view to the represented source line.
+---
+---@param opts? zdiag.JumpOpts
+---@return boolean jumped
+function M.jump_to_source(opts)
+	if
+		not active_view
+		or not vim.api.nvim_buf_is_valid(active_view.bufnr)
+		or vim.api.nvim_get_current_buf() ~= active_view.bufnr
+	then
+		return false
+	end
+
+	local view = active_view
+	view:jump(opts)
+
+	if not vim.api.nvim_buf_is_valid(view.bufnr) then
+		active_view = nil
+	end
+
+	return true
 end
 
 ---Close the active diagnostics view buffer.

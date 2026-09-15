@@ -29,7 +29,7 @@ function M.schedule_reload(view)
     end
 
     require("zdiag.usecase").reload(view)
-  end, 100)
+  end, require("zdiag.config").get_auto_refresh_delay())
 end
 
 ---Create autocmds for the given view.
@@ -82,16 +82,18 @@ function M.create_autocmd(view)
     }
   )
 
-  vim.api.nvim_create_autocmd(
-    "DiagnosticChanged",
-    {
-      group = group,
+  if require("zdiag.config").is_auto_refresh_enabled() then
+    vim.api.nvim_create_autocmd(
+      "DiagnosticChanged",
+      {
+        group = group,
 
-      callback = function()
-        M.schedule_reload(view)
-      end,
-    }
-  )
+        callback = function()
+          M.schedule_reload(view)
+        end,
+      }
+    )
+  end
 
   vim.api.nvim_create_autocmd(
     "ColorScheme",

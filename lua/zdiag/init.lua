@@ -12,6 +12,14 @@ function M.open()
   require("zdiag.usecase").open()
 end
 
+---Jump from the diagnostics view to the represented source line.
+---
+---@param opts? zdiag.JumpOpts
+---@return boolean jumped
+function M.jump_to_source(opts)
+  return require("zdiag.usecase").jump_to_source(opts)
+end
+
 ---Close the active diagnostics view buffer.
 ---
 ---@param opts? { force?: boolean }

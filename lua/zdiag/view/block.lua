@@ -2,6 +2,7 @@
 ---@field bufnr integer
 ---@field source_start integer
 ---@field source_end integer
+---@field original_lines string[]
 ---@field view_start integer?
 ---@field view_end integer?
 ---@field start_mark integer?
@@ -17,13 +18,14 @@ Block.__index = Block
 
 ---Create a new source block.
 ---
----@param opts { bufnr: integer, source_start: integer, source_end: integer, view_start: integer, view_end: integer }
+---@param opts { bufnr: integer, source_start: integer, source_end: integer, original_lines: string[], view_start: integer, view_end: integer }
 ---@return zdiag.Block
 function Block:new(opts)
   return setmetatable({
     bufnr = opts.bufnr,
     source_start = opts.source_start,
     source_end = opts.source_end,
+    original_lines = opts.original_lines,
     view_start = opts.view_start,
     view_end = opts.view_end,
   }, self)
