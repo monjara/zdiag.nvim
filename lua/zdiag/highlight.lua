@@ -11,6 +11,8 @@ local line_highlight_groups = {
       "ZdiagDiagnosticLineHint",
 }
 
+local header_highlight_group = "ZdiagHeader"
+
 ---Start Tree-sitter highlighting using the source buffer's language.
 ---
 ---@param bufnr integer
@@ -61,6 +63,22 @@ function M.severity_hl(severity)
   else
     return "DiagnosticHint"
   end
+end
+
+---Define and return the display-only file header highlight group.
+---
+---@return string
+function M.header_hl()
+  vim.api.nvim_set_hl(
+    0,
+    header_highlight_group,
+    {
+      default = true,
+      link = "Folded",
+    }
+  )
+
+  return header_highlight_group
 end
 
 ---Copy only the theme-provided background into a zdiag line group.
@@ -115,6 +133,8 @@ end
 
 ---Refresh derived line groups after a colorscheme change.
 function M.refresh_line_highlights()
+  M.header_hl()
+
   for severity in pairs(line_highlight_groups) do
     M.line_hl(severity)
   end

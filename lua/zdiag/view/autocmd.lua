@@ -12,7 +12,7 @@ end
 ---
 ---@param view zdiag.View
 function M.schedule_reload(view)
-  if view.reload_pending then
+  if view.closed or view.reload_pending then
     return
   end
 
@@ -21,7 +21,8 @@ function M.schedule_reload(view)
   vim.defer_fn(function()
     view.reload_pending = false
 
-    if not vim.api.nvim_buf_is_valid(view.bufnr)
+    if view.closed
+        or not vim.api.nvim_buf_is_valid(view.bufnr)
         or vim.bo[view.bufnr].modified
     then
       return
@@ -49,6 +50,34 @@ function M.create_autocmd(view)
 
       callback = function()
         require("zdiag.view.edit").apply_changes(view)
+      end,
+    }
+  )
+
+  vim.api.nvim_create_autocmd(
+    "BufUnload",
+    {
+      group = group,
+      buffer = view.bufnr,
+
+      callback = function()
+        local bufnr = view.bufnr
+        view.closed = true
+
+        -- BufUnload runs while Neovim is still processing the original
+        -- deletion.  Complete the wipe on the next event-loop turn.
+        vim.schedule(function()
+          if vim.api.nvim_buf_is_valid(bufnr)
+              and not vim.api.nvim_buf_is_loaded(bufnr)
+          then
+            vim.api.nvim_buf_delete(
+              bufnr,
+              { force = false }
+            )
+          end
+
+          M.remove_autocmd(view)
+        end)
       end,
     }
   )

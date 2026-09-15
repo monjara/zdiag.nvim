@@ -2,10 +2,12 @@
 ---@field ctx zdiag.Context
 ---@field bufnr integer
 ---@field lines string[]
+---@field headers zdiag.Header[]
 ---@field blocks zdiag.Block[]
 ---@field decorations zdiag.Decoration[]
 ---@field line_highlights zdiag.LineHighlight[]
 ---@field reload_pending boolean?
+---@field closed boolean?
 ---@field jump fun(self: zdiag.View): nil
 ---@field build fun(self: zdiag.View, buffers: zdiag.BufferDiagnostics[]): zdiag.View
 ---@field render fun(self: zdiag.View): zdiag.View
@@ -33,6 +35,7 @@ function View:new(ctx)
     ctx = ctx,
     bufnr = bufnr,
     lines = {},
+    headers = {},
     blocks = {},
     decorations = {},
     line_highlights = {},
@@ -47,6 +50,7 @@ function View:build(buffers)
   local Block = require("zdiag.view.block")
   local Decoration = require("zdiag.view.decoration")
   local Diagnostic = require("zdiag.diagnostic")
+  local Header = require("zdiag.view.header")
   local LineHighlight =
       require("zdiag.view.line_highlight")
 
@@ -64,7 +68,16 @@ function View:build(buffers)
     local relative =
         vim.fn.fnamemodify(name, ":.")
 
-    table.insert(self.lines, "▼ " .. relative)
+    table.insert(
+      self.headers,
+      Header:new(#self.lines, "▼ " .. relative)
+    )
+
+    -- The header is drawn over this empty placeholder, so its text is not
+    -- part of the editable buffer contents.
+    table.insert(self.lines, "")
+
+    -- Keep one editable-text line between the header and its source blocks.
     table.insert(self.lines, "")
 
     local ranges = Diagnostic.build_ranges(
@@ -195,6 +208,10 @@ function View:render()
     block:attach_mark(self)
   end
 
+  for _, header in ipairs(self.headers) do
+    header:apply(self)
+  end
+
   for _, line_highlight in ipairs(self.line_highlights) do
     line_highlight:apply(self)
   end
@@ -227,6 +244,7 @@ function View:reset()
   )
 
   self.lines = {}
+  self.headers = {}
   self.blocks = {}
   self.decorations = {}
   self.line_highlights = {}

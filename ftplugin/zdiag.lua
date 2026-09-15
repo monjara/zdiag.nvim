@@ -46,7 +46,7 @@ map("gl", function()
 end, "Toggle LSP inlay hints")
 
 map(
-  "<C-k>",
+  "K",
   with_source(vim.lsp.buf.signature_help),
   "LSP signature help"
 )
@@ -105,14 +105,14 @@ map(
 
 map("g[", function()
   zdiag.diagnostic_jump({
-    count = 1,
+    count = -1,
     float = true,
   })
 end, "Go to next diagnostic message")
 
 map("g]", function()
   zdiag.diagnostic_jump({
-    count = -1,
+    count = 1,
     float = true,
   })
 end, "Go to previous diagnostic message")

@@ -1,5 +1,7 @@
 local M = {}
 
+local BUFFER_NAME = "zdiag://diagnostics"
+
 ---Load a source buffer, tolerating stale deferred diagnostic decorations.
 ---
 ---Neovim defers diagnostic rendering for unloaded buffers until BufRead. A
@@ -43,15 +45,29 @@ end
 ---
 ---@return integer bufnr
 function M.build_buffer()
+  local existing = vim.fn.bufnr(BUFFER_NAME)
+
+  -- A caller may have used nvim_buf_delete({ unload = true }).  Such a
+  -- buffer still owns its name, so finish deleting it instead of reusing it.
+  if existing ~= -1
+      and vim.api.nvim_buf_is_valid(existing)
+      and not vim.api.nvim_buf_is_loaded(existing)
+  then
+    vim.api.nvim_buf_delete(existing, { force = false })
+  end
+
   local bufnr = vim.api.nvim_create_buf(false, true)
   require("zdiag.log").debug("Buffer created with bufnr: " .. bufnr)
 
   vim.bo[bufnr].buftype = "acwrite"
-  vim.bo[bufnr].bufhidden = "wipe"
+  -- Keep the buffer alive while a buffer-closing mapping switches to its
+  -- replacement.  With "wipe", nvim_set_current_buf() invalidates this
+  -- buffer before the mapping can call nvim_buf_delete() on it.
+  vim.bo[bufnr].bufhidden = "hide"
   vim.bo[bufnr].swapfile = false
   vim.bo[bufnr].modifiable = true
 
-  vim.api.nvim_buf_set_name(bufnr, "zdiag://diagnostics")
+  vim.api.nvim_buf_set_name(bufnr, BUFFER_NAME)
 
   return bufnr
 end
