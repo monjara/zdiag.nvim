@@ -131,18 +131,18 @@ function M.close(opts)
 	return true
 end
 
----Run a callback in the source context when called from the active view.
+---Call a callback at the represented position when called from the active view.
 ---Outside the view, run the callback in the current buffer as usual.
 ---
 ---@param callback fun(): any
 ---@return any
-function M.with_source(callback)
+function M.call(callback)
 	if
 		active_view
 		and vim.api.nvim_buf_is_valid(active_view.bufnr)
 		and vim.api.nvim_get_current_buf() == active_view.bufnr
 	then
-		local _, result = active_view:with_source(callback)
+		local _, result = active_view:call(callback)
 		return result
 	end
 

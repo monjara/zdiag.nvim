@@ -14,7 +14,7 @@
 ---@field render fun(self: zdiag.View): zdiag.View
 ---@field reset fun(self: zdiag.View): zdiag.View
 ---@field mark_unmodified fun(self: zdiag.View): nil
----@field with_source fun(self: zdiag.View, callback: fun()): boolean, any
+---@field call fun(self: zdiag.View, callback: fun()): boolean, any
 ---@field code_action fun(self: zdiag.View, opts?: vim.lsp.buf.code_action.Opts): nil
 ---@field diagnostic_open_float fun(self: zdiag.View, opts?: vim.diagnostic.Opts.Float): integer?
 ---@field diagnostic_jump fun(self: zdiag.View, opts: vim.diagnostic.JumpOpts): vim.Diagnostic?
@@ -295,12 +295,12 @@ function View:jump(opts)
   require('zdiag.view.jump').jump_to_source(self, opts)
 end
 
----Run a callback in the source buffer context under the cursor.
+---Call a callback at the source buffer position under the cursor.
 ---
 ---@param callback fun(): any
 ---@return boolean executed
 ---@return any result
-function View:with_source(callback)
+function View:call(callback)
   return require("zdiag.view.source").call(
     self,
     callback

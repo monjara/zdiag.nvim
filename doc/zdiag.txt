@@ -181,7 +181,7 @@ SOURCE OPERATIONS				*zdiag-source-operations*
 
 Operations such as hover, definitions, rename, and code actions must run in
 the source-buffer context represented by the current view line.
-|zdiag.with_source()| provides that context for custom mappings.  zdiag also
+|zdiag.call()| provides that context for custom mappings.  zdiag also
 provides dedicated helpers for code actions, diagnostic floats, and
 diagnostic navigation.
 
@@ -216,8 +216,8 @@ close({opts})						*zdiag.close()*
 	Options: ~
 	  {force}  (`boolean`, default `false`) Discard unsaved view changes.
 
-with_source({callback})				*zdiag.with_source()*
-	Run `{callback}` in the source buffer and at the source position
+call({callback})					*zdiag.call()*
+	Run `{callback}` in the underlying buffer and at the position
 	represented by the current zdiag line.  The callback's result is
 	returned.
 
@@ -225,7 +225,7 @@ with_source({callback})				*zdiag.with_source()*
 	buffer.  This makes one global mapping usable in both contexts:
 >
   vim.keymap.set("n", "K", function()
-    return require("zdiag").with_source(vim.lsp.buf.hover)
+    return require("zdiag").call(vim.lsp.buf.hover)
   end)
 <
 

@@ -116,20 +116,20 @@ require("zdiag").setup({
 })
 ```
 
-zdiag does not detect or copy existing keymaps. Other source-buffer operations
-can be mapped explicitly with `with_source`:
+zdiag does not detect or copy existing keymaps. Other buffer-local operations
+can be mapped explicitly with `call`:
 
 ```lua
 vim.keymap.set("n", "K", function()
-  require("zdiag").with_source(vim.lsp.buf.hover)
+  require("zdiag").call(vim.lsp.buf.hover)
 end)
 
 vim.keymap.set("n", "gd", function()
-  require("zdiag").with_source(vim.lsp.buf.definition)
+  require("zdiag").call(vim.lsp.buf.definition)
 end)
 ```
 
-Outside a zdiag view, `with_source` runs the callback against the current
+Outside a zdiag view, `call` runs the callback against the current
 buffer normally, so the same mapping can be used globally.
 
 zdiag does not install any keymaps. View-only mappings can be configured with

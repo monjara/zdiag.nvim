@@ -96,7 +96,7 @@ function M.code_action(view, opts)
     end
   end
 
-  view:with_source(function()
+  view:call(function()
     vim.lsp.buf.code_action(opts)
   end)
 end

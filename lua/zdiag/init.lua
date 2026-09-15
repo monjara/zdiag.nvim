@@ -28,13 +28,13 @@ function M.close(opts)
   return require("zdiag.usecase").close(opts)
 end
 
----Run a callback against the source position represented by the current line.
+---Call a callback at the buffer position represented by the current line.
 ---Outside a zdiag view, run it against the current buffer.
 ---
 ---@param callback fun(): any
 ---@return any
-function M.with_source(callback)
-  return require("zdiag.usecase").with_source(callback)
+function M.call(callback)
+  return require("zdiag.usecase").call(callback)
 end
 
 ---Request LSP code actions for the source position represented by the current line.
