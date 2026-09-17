@@ -41,12 +41,16 @@ local defaults = {
 ---@type zdiag.Config
 local options = vim.deepcopy(defaults)
 
+---Return whether a value names a supported jump mode.
+---
 ---@param mode any
 ---@return boolean
 local function is_jump_mode(mode)
   return mode == 'close' or mode == 'split' or mode == 'buffer'
 end
 
+---Validate user-provided configuration before merging it with defaults.
+---
 ---@param opts zdiag.Config
 local function validate(opts)
   if type(opts) ~= 'table' then

@@ -9,6 +9,8 @@ local M = {}
 ---@field end_line integer
 ---@field diagnostics vim.Diagnostic[]
 
+---Sort diagnostics by buffer and source position.
+---
 ---@param diagnostics vim.Diagnostic[]
 local function sort_by_position(diagnostics)
   table.sort(diagnostics, function(a, b)
@@ -24,6 +26,8 @@ local function sort_by_position(diagnostics)
   end)
 end
 
+---Group sorted diagnostics by their source buffer.
+---
 ---@param diagnostics vim.Diagnostic[]
 ---@return zdiag.BufferDiagnostics[]
 local function group_by_buffer(diagnostics)
@@ -86,6 +90,10 @@ function M.build_ranges(diagnostics, context_lines)
   return ranges
 end
 
+---Group diagnostics by their zero-based source line number.
+---
+---@param diagnostics vim.Diagnostic[]
+---@return table<integer, vim.Diagnostic[]>
 function M.group_by_line(diagnostics)
   local result = {}
 

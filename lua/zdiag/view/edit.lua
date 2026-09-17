@@ -1,5 +1,7 @@
 local M = {}
 
+---Return whether two line collections contain the same text.
+---
 ---@param left string[]
 ---@param right string[]
 ---@return boolean
