@@ -61,6 +61,28 @@ end
 
 ---Open a diagnostics view for the current Neovim session.
 function M.open()
+  if
+    active_view
+    and not active_view.closed
+    and vim.api.nvim_buf_is_valid(active_view.bufnr)
+    and vim.api.nvim_buf_is_loaded(active_view.bufnr)
+  then
+    if vim.bo[active_view.bufnr].modified then
+      vim.notify('zdiag: reopening the view without refreshing because it has unsaved changes', vim.log.levels.INFO)
+    else
+      M.reload(active_view)
+    end
+
+    vim.api.nvim_set_current_buf(active_view.bufnr)
+    vim.bo[active_view.bufnr].filetype = 'zdiag'
+    return
+  end
+
+  if active_view then
+    require('zdiag.view.autocmd').remove_autocmd(active_view)
+    active_view = nil
+  end
+
   local Context = require('zdiag.context')
   local ctx = Context:new()
 

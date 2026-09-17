@@ -33,7 +33,7 @@ function Decoration:apply(view)
 
   local col = math.min(self.col, self.line_length)
 
-  local end_col = math.min(math.max(col, diagnostic.end_col or col + 1), self.line_length)
+  local end_col = math.min(math.max(col + 1, diagnostic.end_col or col + 1), self.line_length)
 
   local opts = {
     -- Preserve the whole-line diagnostic background underneath virtual text

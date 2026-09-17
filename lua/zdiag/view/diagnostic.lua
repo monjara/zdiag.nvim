@@ -251,23 +251,26 @@ local function run_on_jump(view, winid, diagnostic, opts)
 
   if opts.float then
     local float_opts = type(opts.float) == 'table' and vim.deepcopy(opts.float) or {}
+    local on_jump = callback
 
-    callback = function(jumped)
-      if not vim.api.nvim_win_is_valid(winid) or vim.api.nvim_win_get_buf(winid) ~= view.bufnr then
-        return
+    callback = function(jumped, bufnr)
+      if vim.api.nvim_win_is_valid(winid) and vim.api.nvim_win_get_buf(winid) == view.bufnr then
+        vim.api.nvim_win_call(winid, function()
+          if float_opts.focus == nil then
+            float_opts.focus = false
+          end
+
+          open_float(view, float_opts, {
+            bufnr = jumped.bufnr,
+            row = jumped.lnum,
+            col = jumped.col,
+          })
+        end)
       end
 
-      vim.api.nvim_win_call(winid, function()
-        if float_opts.focus == nil then
-          float_opts.focus = false
-        end
-
-        open_float(view, float_opts, {
-          bufnr = jumped.bufnr,
-          row = jumped.lnum,
-          col = jumped.col,
-        })
-      end)
+      if on_jump then
+        on_jump(jumped, bufnr)
+      end
     end
   end
 
