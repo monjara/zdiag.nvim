@@ -16,6 +16,9 @@ function M.render(view)
 
   local highlighted_buffers = {}
 
+  -- Neovim keeps one active Tree-sitter highlighter per buffer. Use the first
+  -- source language with an available parser; starting another language would
+  -- replace it. Blocks with the same language are all parsed by this highlighter.
   for _, block in ipairs(view.blocks) do
     if not highlighted_buffers[block.bufnr] then
       highlighted_buffers[block.bufnr] = true

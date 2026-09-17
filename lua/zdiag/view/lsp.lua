@@ -29,6 +29,10 @@ local function visual_range(view)
     local line = vim.api.nvim_buf_get_lines(view.bufnr, end_row, end_row + 1, false)[1] or ''
 
     end_col = #line
+  else
+    -- Visual character and block selections include the cursor byte, while
+    -- LSP ranges use an exclusive end position.
+    end_col = end_col + 1
   end
 
   local source = require('zdiag.view.source')

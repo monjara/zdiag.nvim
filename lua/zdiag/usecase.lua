@@ -142,7 +142,14 @@ function M.close(opts)
     return false
   end
 
-  vim.api.nvim_buf_delete(view.bufnr, { force = opts.force or false })
+  local force = opts.force or false
+
+  if vim.bo[view.bufnr].modified and not force then
+    vim.notify('zdiag: write or discard view changes before closing', vim.log.levels.WARN)
+    return false
+  end
+
+  vim.api.nvim_buf_delete(view.bufnr, { force = force })
 
   require('zdiag.view.autocmd').remove_autocmd(view)
 

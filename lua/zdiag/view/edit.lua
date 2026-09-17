@@ -128,6 +128,7 @@ function M.apply_changes(view)
   end
 
   view:mark_unmodified()
+  view.reload_deferred = false
 
   require('zdiag.view.autocmd').schedule_reload(view)
 

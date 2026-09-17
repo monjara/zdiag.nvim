@@ -73,7 +73,9 @@ local function matches_filters(diagnostic, opts)
     return false
   end
 
-  if opts.lnum and (opts.lnum < diagnostic.lnum or opts.lnum > diagnostic.end_lnum) then
+  local end_lnum = diagnostic.end_lnum or diagnostic.lnum
+
+  if opts.lnum and (opts.lnum < diagnostic.lnum or opts.lnum > end_lnum) then
     return false
   end
 

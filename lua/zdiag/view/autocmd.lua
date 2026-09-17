@@ -1,11 +1,47 @@
 local M = {}
 
+local highlight_autocmd_created = false
+
 ---Return the autocmd group name for a diagnostics view.
 ---
 ---@param view zdiag.View
 ---@return string
 local function group_name(view)
   return 'zdiag_view_' .. view.bufnr
+end
+
+---Create the plugin-wide colorscheme autocmd once.
+local function ensure_highlight_autocmd()
+  if highlight_autocmd_created then
+    return
+  end
+
+  local group = vim.api.nvim_create_augroup('zdiag_highlight', { clear = true })
+
+  vim.api.nvim_create_autocmd('ColorScheme', {
+    group = group,
+
+    callback = function()
+      require('zdiag.highlight').refresh_line_highlights()
+    end,
+  })
+
+  highlight_autocmd_created = true
+end
+
+---Resume a reload that was deferred while the view had unsaved edits.
+---
+---@param view zdiag.View
+local function resume_deferred_reload(view)
+  if
+    view.reload_deferred
+    and not view.closed
+    and vim.api.nvim_buf_is_valid(view.bufnr)
+    and not vim.bo[view.bufnr].modified
+  then
+    view.reload_deferred = false
+    M.schedule_reload(view)
+  end
 end
 
 ---Schedule a diagnostics view rebuild after diagnostics settle.
@@ -21,10 +57,16 @@ function M.schedule_reload(view)
   vim.defer_fn(function()
     view.reload_pending = false
 
-    if view.closed or not vim.api.nvim_buf_is_valid(view.bufnr) or vim.bo[view.bufnr].modified then
+    if view.closed or not vim.api.nvim_buf_is_valid(view.bufnr) then
       return
     end
 
+    if vim.bo[view.bufnr].modified then
+      view.reload_deferred = true
+      return
+    end
+
+    view.reload_deferred = false
     require('zdiag.usecase').reload(view)
   end, require('zdiag.config').get_auto_refresh_delay())
 end
@@ -33,6 +75,8 @@ end
 ---
 ---@param view zdiag.View
 function M.create_autocmd(view)
+  ensure_highlight_autocmd()
+
   local group = vim.api.nvim_create_augroup(group_name(view), { clear = true })
 
   vim.api.nvim_create_autocmd('BufWriteCmd', {
@@ -64,6 +108,15 @@ function M.create_autocmd(view)
     end,
   })
 
+  vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI' }, {
+    group = group,
+    buffer = view.bufnr,
+
+    callback = function()
+      resume_deferred_reload(view)
+    end,
+  })
+
   if require('zdiag.config').is_auto_refresh_enabled() then
     vim.api.nvim_create_autocmd('DiagnosticChanged', {
       group = group,
@@ -73,14 +126,6 @@ function M.create_autocmd(view)
       end,
     })
   end
-
-  vim.api.nvim_create_autocmd('ColorScheme', {
-    group = group,
-
-    callback = function()
-      require('zdiag.highlight').refresh_line_highlights()
-    end,
-  })
 end
 
 ---Remove autocmds owned by a diagnostics view.

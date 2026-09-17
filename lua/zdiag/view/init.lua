@@ -8,6 +8,7 @@
 ---@field decorations zdiag.Decoration[]
 ---@field line_highlights zdiag.LineHighlight[]
 ---@field reload_pending boolean?
+---@field reload_deferred boolean?
 ---@field closed boolean?
 ---@field jump fun(self: zdiag.View, opts?: zdiag.JumpOpts): nil
 ---@field build fun(self: zdiag.View, buffers: zdiag.BufferDiagnostics[]): zdiag.View
