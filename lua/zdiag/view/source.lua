@@ -6,7 +6,7 @@ local M = {}
 ---@param row integer
 ---@return zdiag.Block?
 ---@return integer? offset
-function M.find_block(view, row)
+local function find_block(view, row)
   for _, block in ipairs(view.blocks) do
     local start_row, end_row = block:get_view_range(view)
 
@@ -25,7 +25,7 @@ end
 ---@param col integer
 ---@return { bufnr: integer, row: integer, col: integer, block: zdiag.Block }?
 function M.get_position(view, row, col)
-  local block, offset = M.find_block(view, row)
+  local block, offset = find_block(view, row)
 
   if not block or not offset then
     return nil
@@ -85,31 +85,6 @@ function M.call(view, callback)
   end)
 
   return true, result
-end
-
----Move the view cursor to a position represented by a source buffer.
----
----@param view zdiag.View
----@param bufnr integer
----@param row integer
----@param col integer
----@return boolean moved
-function M.set_view_cursor(view, bufnr, row, col)
-  for _, block in ipairs(view.blocks) do
-    if block.bufnr == bufnr and row >= block.source_start and row < block.source_end then
-      local start_row = block:get_start_row(view)
-
-      if start_row then
-        vim.api.nvim_win_set_cursor(0, {
-          start_row + row - block.source_start + 1,
-          col,
-        })
-        return true
-      end
-    end
-  end
-
-  return false
 end
 
 return M

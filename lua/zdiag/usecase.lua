@@ -45,7 +45,7 @@ function M.reload(view)
       and source_position.row >= block.source_start
       and source_position.row < block.source_end
     then
-      local start_row = block:get_start_row(view)
+      local start_row = block:get_view_range(view)
 
       if start_row then
         vim.api.nvim_win_set_cursor(winid, {

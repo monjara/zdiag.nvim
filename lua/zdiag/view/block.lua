@@ -9,8 +9,6 @@
 ---@field end_mark integer?
 ---@field new fun(self: zdiag.Block, opts: table): zdiag.Block
 ---@field attach_mark fun(self: zdiag.Block, view: zdiag.View): nil
----@field get_start_row fun(self: zdiag.Block, view: zdiag.View): integer?
----@field get_end_row fun(self: zdiag.Block, view: zdiag.View): integer?
 ---@field get_view_range fun(self: zdiag.Block, view: zdiag.View): integer?, integer?
 
 local Block = {}
@@ -66,29 +64,13 @@ local function get_mark_row(view, mark_id)
   return position[1]
 end
 
----Get the current start row in the view.
----
----@param view zdiag.View
----@return integer?
-function Block:get_start_row(view)
-  return get_mark_row(view, self.start_mark)
-end
-
----Get the current end row in the view.
----
----@param view zdiag.View
----@return integer?
-function Block:get_end_row(view)
-  return get_mark_row(view, self.end_mark)
-end
-
 ---Get the current row range in the view.
 ---
 ---@param view zdiag.View
 ---@return integer?
 ---@return integer?
 function Block:get_view_range(view)
-  return self:get_start_row(view), self:get_end_row(view)
+  return get_mark_row(view, self.start_mark), get_mark_row(view, self.end_mark)
 end
 
 return Block

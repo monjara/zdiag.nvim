@@ -27,9 +27,9 @@ end
 ---@param opts? zdiag.JumpOpts
 function M.jump_to_source(view, opts)
   local cursor = vim.api.nvim_win_get_cursor(0)
-  local block, offset = require('zdiag.view.source').find_block(view, cursor[1] - 1)
+  local position = require('zdiag.view.source').get_position(view, cursor[1] - 1, cursor[2])
 
-  if not block then
+  if not position then
     vim.notify('zdiag: cursor is not on a source line', vim.log.levels.INFO)
     return
   end
@@ -41,23 +41,11 @@ function M.jump_to_source(view, opts)
     return
   end
 
-  local col = cursor[2]
-
-  local source_lnum = block.source_start + offset
-
-  local source_line_count = vim.api.nvim_buf_line_count(block.bufnr)
-
-  source_lnum = math.min(source_lnum, math.max(0, source_line_count - 1))
-
   local target_win = prepare_window(mode)
 
-  vim.api.nvim_win_set_buf(target_win, block.bufnr)
+  vim.api.nvim_win_set_buf(target_win, position.bufnr)
 
-  local source_line = vim.api.nvim_buf_get_lines(block.bufnr, source_lnum, source_lnum + 1, false)[1] or ''
-
-  col = math.min(col, #source_line)
-
-  vim.api.nvim_win_set_cursor(target_win, { source_lnum + 1, col })
+  vim.api.nvim_win_set_cursor(target_win, { position.row + 1, position.col })
 
   if mode == 'close' then
     close_view(view)
