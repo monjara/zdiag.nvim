@@ -23,26 +23,17 @@ end
 ---
 ---@param view zdiag.View
 function LineHighlight:apply(view)
-  local group =
-      require("zdiag.highlight")
-          .line_hl(self.severity)
+  local group = require('zdiag.highlight').line_hl(self.severity)
 
   if not group then
     return
   end
 
-  self.mark_id =
-      vim.api.nvim_buf_set_extmark(
-        view.bufnr,
-        view.ctx.ns,
-        self.row,
-        0,
-        {
-          line_hl_group = group,
-          priority = 10,
-          right_gravity = false,
-        }
-      )
+  self.mark_id = vim.api.nvim_buf_set_extmark(view.bufnr, view.ctx.ns, self.row, 0, {
+    line_hl_group = group,
+    priority = 10,
+    right_gravity = false,
+  })
 end
 
 return LineHighlight

@@ -28,13 +28,7 @@ local function collect_edits(view)
     local start_row, end_row = block:get_view_range(view)
 
     if start_row and end_row then
-      local edited_lines =
-          vim.api.nvim_buf_get_lines(
-            view.bufnr,
-            start_row,
-            end_row,
-            false
-          )
+      local edited_lines = vim.api.nvim_buf_get_lines(view.bufnr, start_row, end_row, false)
 
       if not same_lines(edited_lines, block.original_lines) then
         table.insert(edits, {
@@ -60,26 +54,18 @@ end
 ---@param view zdiag.View
 ---@param edit { block: zdiag.Block, bufnr: integer, source_start: integer, source_end: integer, lines: string[] }
 local function update_source_ranges(view, edit)
-  local line_delta =
-      #edit.lines
-      - (edit.source_end - edit.source_start)
+  local line_delta = #edit.lines - (edit.source_end - edit.source_start)
 
-  edit.block.source_end =
-      edit.source_start + #edit.lines
+  edit.block.source_end = edit.source_start + #edit.lines
 
   if line_delta == 0 then
     return
   end
 
   for _, block in ipairs(view.blocks) do
-    if block ~= edit.block
-        and block.bufnr == edit.bufnr
-        and block.source_start >= edit.source_end
-    then
-      block.source_start =
-          block.source_start + line_delta
-      block.source_end =
-          block.source_end + line_delta
+    if block ~= edit.block and block.bufnr == edit.bufnr and block.source_start >= edit.source_end then
+      block.source_start = block.source_start + line_delta
+      block.source_end = block.source_end + line_delta
     end
   end
 end
@@ -107,15 +93,9 @@ function M.apply_changes(view)
       goto continue
     end
 
-    require("zdiag.buffer").ensure_loaded(edit.bufnr)
+    require('zdiag.buffer').ensure_loaded(edit.bufnr)
 
-    vim.api.nvim_buf_set_lines(
-      edit.bufnr,
-      edit.source_start,
-      edit.source_end,
-      false,
-      edit.lines
-    )
+    vim.api.nvim_buf_set_lines(edit.bufnr, edit.source_start, edit.source_end, false, edit.lines)
 
     update_source_ranges(view, edit)
     touched_buffers[edit.bufnr] = true
@@ -126,21 +106,15 @@ function M.apply_changes(view)
   for bufnr in pairs(touched_buffers) do
     local name = vim.api.nvim_buf_get_name(bufnr)
 
-    if name ~= "" then
+    if name ~= '' then
       local ok, err = pcall(function()
         vim.api.nvim_buf_call(bufnr, function()
-          vim.cmd("silent write")
+          vim.cmd('silent write')
         end)
       end)
 
       if not ok then
-        vim.notify(
-          "zdiag: failed to write "
-          .. name
-          .. "\n"
-          .. tostring(err),
-          vim.log.levels.ERROR
-        )
+        vim.notify('zdiag: failed to write ' .. name .. '\n' .. tostring(err), vim.log.levels.ERROR)
 
         return
       end
@@ -153,12 +127,9 @@ function M.apply_changes(view)
 
   view:mark_unmodified()
 
-  require("zdiag.view.autocmd").schedule_reload(view)
+  require('zdiag.view.autocmd').schedule_reload(view)
 
-  vim.notify(
-    "zdiag: changes written to source files",
-    vim.log.levels.INFO
-  )
+  vim.notify('zdiag: changes written to source files', vim.log.levels.INFO)
 end
 
 return M

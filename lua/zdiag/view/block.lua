@@ -35,27 +35,13 @@ end
 ---
 ---@param view zdiag.View
 function Block:attach_mark(view)
-  self.start_mark =
-      vim.api.nvim_buf_set_extmark(
-        view.bufnr,
-        view.ctx.ns,
-        self.view_start,
-        0,
-        {
-          right_gravity = false,
-        }
-      )
+  self.start_mark = vim.api.nvim_buf_set_extmark(view.bufnr, view.ctx.ns, self.view_start, 0, {
+    right_gravity = false,
+  })
 
-  self.end_mark =
-      vim.api.nvim_buf_set_extmark(
-        view.bufnr,
-        view.ctx.ns,
-        self.view_end,
-        0,
-        {
-          right_gravity = true,
-        }
-      )
+  self.end_mark = vim.api.nvim_buf_set_extmark(view.bufnr, view.ctx.ns, self.view_end, 0, {
+    right_gravity = true,
+  })
 
   self.view_start = nil
   self.view_end = nil
@@ -71,12 +57,7 @@ local function get_mark_row(view, mark_id)
     return nil
   end
 
-  local position = vim.api.nvim_buf_get_extmark_by_id(
-    view.bufnr,
-    view.ctx.ns,
-    mark_id,
-    {}
-  )
+  local position = vim.api.nvim_buf_get_extmark_by_id(view.bufnr, view.ctx.ns, mark_id, {})
 
   if #position == 0 then
     return nil

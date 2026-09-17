@@ -8,10 +8,10 @@ Context.__index = Context
 ---
 ---@return zdiag.Context
 function Context:new()
-  local ns = vim.api.nvim_create_namespace("zdiag")
+  local ns = vim.api.nvim_create_namespace('zdiag')
 
   return setmetatable({
-    ns = ns
+    ns = ns,
   }, Context)
 end
 

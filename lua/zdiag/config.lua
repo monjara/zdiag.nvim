@@ -28,17 +28,13 @@ local defaults = {
     delay = 100,
   },
   jump = {
-    mode = "split",
+    mode = 'split',
   },
   line_highlight = {
-    [vim.diagnostic.severity.ERROR] =
-        "DiagnosticVirtualTextError",
-    [vim.diagnostic.severity.WARN] =
-        "DiagnosticVirtualTextWarn",
-    [vim.diagnostic.severity.INFO] =
-        "DiagnosticVirtualTextInfo",
-    [vim.diagnostic.severity.HINT] =
-        "DiagnosticVirtualTextHint",
+    [vim.diagnostic.severity.ERROR] = 'DiagnosticVirtualTextError',
+    [vim.diagnostic.severity.WARN] = 'DiagnosticVirtualTextWarn',
+    [vim.diagnostic.severity.INFO] = 'DiagnosticVirtualTextInfo',
+    [vim.diagnostic.severity.HINT] = 'DiagnosticVirtualTextHint',
   },
 }
 
@@ -48,63 +44,49 @@ local options = vim.deepcopy(defaults)
 ---@param mode any
 ---@return boolean
 local function is_jump_mode(mode)
-  return mode == "close"
-      or mode == "split"
-      or mode == "buffer"
+  return mode == 'close' or mode == 'split' or mode == 'buffer'
 end
 
 ---@param opts zdiag.Config
 local function validate(opts)
-  if type(opts) ~= "table" then
-    error("zdiag: setup options must be a table")
+  if type(opts) ~= 'table' then
+    error('zdiag: setup options must be a table')
   end
 
-  if opts.context_lines ~= nil
-      and (type(opts.context_lines) ~= "number"
-        or opts.context_lines < 0
-        or opts.context_lines % 1 ~= 0)
+  if
+    opts.context_lines ~= nil
+    and (type(opts.context_lines) ~= 'number' or opts.context_lines < 0 or opts.context_lines % 1 ~= 0)
   then
-    error("zdiag: context_lines must be a non-negative integer")
+    error('zdiag: context_lines must be a non-negative integer')
   end
 
-  if opts.diagnostics ~= nil
-      and type(opts.diagnostics) ~= "table"
-  then
-    error("zdiag: diagnostics must be a table")
+  if opts.diagnostics ~= nil and type(opts.diagnostics) ~= 'table' then
+    error('zdiag: diagnostics must be a table')
   end
 
-  if opts.auto_refresh ~= nil
-      and type(opts.auto_refresh) ~= "table"
-  then
-    error("zdiag: auto_refresh must be a table")
+  if opts.auto_refresh ~= nil and type(opts.auto_refresh) ~= 'table' then
+    error('zdiag: auto_refresh must be a table')
   end
 
-  if opts.line_highlight ~= nil
-      and type(opts.line_highlight) ~= "table"
-  then
-    error("zdiag: line_highlight must be a table")
+  if opts.line_highlight ~= nil and type(opts.line_highlight) ~= 'table' then
+    error('zdiag: line_highlight must be a table')
   end
 
-  if opts.jump ~= nil
-      and type(opts.jump) ~= "table"
-  then
-    error("zdiag: jump must be a table")
+  if opts.jump ~= nil and type(opts.jump) ~= 'table' then
+    error('zdiag: jump must be a table')
   end
 
   local auto_refresh = opts.auto_refresh or {}
 
-  if auto_refresh.enabled ~= nil
-      and type(auto_refresh.enabled) ~= "boolean"
-  then
-    error("zdiag: auto_refresh.enabled must be a boolean")
+  if auto_refresh.enabled ~= nil and type(auto_refresh.enabled) ~= 'boolean' then
+    error('zdiag: auto_refresh.enabled must be a boolean')
   end
 
-  if auto_refresh.delay ~= nil
-      and (type(auto_refresh.delay) ~= "number"
-        or auto_refresh.delay < 0
-        or auto_refresh.delay % 1 ~= 0)
+  if
+    auto_refresh.delay ~= nil
+    and (type(auto_refresh.delay) ~= 'number' or auto_refresh.delay < 0 or auto_refresh.delay % 1 ~= 0)
   then
-    error("zdiag: auto_refresh.delay must be a non-negative integer")
+    error('zdiag: auto_refresh.delay must be a non-negative integer')
   end
 
   local jump = opts.jump or {}
@@ -123,19 +105,11 @@ function M.setup(opts)
   end
   validate(opts)
 
-  options = vim.tbl_deep_extend(
-    "force",
-    vim.deepcopy(defaults),
-    opts
-  )
+  options = vim.tbl_deep_extend('force', vim.deepcopy(defaults), opts)
 
-  options.line_highlight = vim.tbl_extend(
-    "force",
-    vim.deepcopy(defaults.line_highlight),
-    opts.line_highlight or {}
-  )
+  options.line_highlight = vim.tbl_extend('force', vim.deepcopy(defaults.line_highlight), opts.line_highlight or {})
 
-  local highlight = package.loaded["zdiag.highlight"]
+  local highlight = package.loaded['zdiag.highlight']
 
   if highlight then
     highlight.invalidate_line_highlights()
@@ -179,8 +153,8 @@ function M.get_jump_mode(opts)
     return options.jump.mode
   end
 
-  if type(opts) ~= "table" then
-    error("zdiag: jump options must be a table")
+  if type(opts) ~= 'table' then
+    error('zdiag: jump options must be a table')
   end
 
   if opts.mode ~= nil and not is_jump_mode(opts.mode) then
@@ -198,7 +172,7 @@ function M.get_line_highlight(severity)
   local groups = options.line_highlight or {}
   local group = groups[severity]
 
-  return type(group) == "string" and group or nil
+  return type(group) == 'string' and group or nil
 end
 
 return M

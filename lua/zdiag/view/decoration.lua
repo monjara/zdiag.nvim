@@ -29,56 +29,33 @@ end
 ---
 ---@param view zdiag.View
 function Decoration:apply(view)
-  local diagnostic =
-      self.diagnostic
+  local diagnostic = self.diagnostic
 
-  local col =
-      math.min(self.col, self.line_length)
+  local col = math.min(self.col, self.line_length)
 
-  local end_col =
-      math.min(
-        math.max(
-          col,
-          diagnostic.end_col
-          or col + 1
-        ),
-        self.line_length
-      )
+  local end_col = math.min(math.max(col, diagnostic.end_col or col + 1), self.line_length)
 
   local opts = {
     -- Preserve the whole-line diagnostic background underneath virtual text
     -- while applying the severity group as its foreground.
-    hl_mode = "combine",
+    hl_mode = 'combine',
 
     virt_text = {
       {
-        "  "
-        .. diagnostic.message,
-        require("zdiag.highlight").severity_hl(
-          diagnostic.severity
-        ),
+        '  ' .. diagnostic.message,
+        require('zdiag.highlight').severity_hl(diagnostic.severity),
       },
     },
 
-    virt_text_pos = "eol",
+    virt_text_pos = 'eol',
   }
 
   if end_col > col then
     opts.end_col = end_col
-    opts.hl_group =
-        require("zdiag.highlight").severity_hl(
-          diagnostic.severity
-        )
+    opts.hl_group = require('zdiag.highlight').severity_hl(diagnostic.severity)
   end
 
-  self.mark_id =
-      vim.api.nvim_buf_set_extmark(
-        view.bufnr,
-        view.ctx.ns,
-        self.row,
-        col,
-        opts
-      )
+  self.mark_id = vim.api.nvim_buf_set_extmark(view.bufnr, view.ctx.ns, self.row, col, opts)
 end
 
 return Decoration

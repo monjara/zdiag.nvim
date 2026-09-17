@@ -4,12 +4,12 @@ local M = {}
 ---
 ---@param opts? zdiag.Config
 function M.setup(opts)
-  require("zdiag.config").setup(opts)
+  require('zdiag.config').setup(opts)
 end
 
 ---Open the diagnostics view.
 function M.open()
-  require("zdiag.usecase").open()
+  require('zdiag.usecase').open()
 end
 
 ---Jump from the diagnostics view to the represented source line.
@@ -17,7 +17,7 @@ end
 ---@param opts? zdiag.JumpOpts
 ---@return boolean jumped
 function M.jump_to_source(opts)
-  return require("zdiag.usecase").jump_to_source(opts)
+  return require('zdiag.usecase').jump_to_source(opts)
 end
 
 ---Close the active diagnostics view buffer.
@@ -25,7 +25,7 @@ end
 ---@param opts? { force?: boolean }
 ---@return boolean closed
 function M.close(opts)
-  return require("zdiag.usecase").close(opts)
+  return require('zdiag.usecase').close(opts)
 end
 
 ---Call a callback at the buffer position represented by the current line.
@@ -34,14 +34,14 @@ end
 ---@param callback fun(): any
 ---@return any
 function M.call(callback)
-  return require("zdiag.usecase").call(callback)
+  return require('zdiag.usecase').call(callback)
 end
 
 ---Request LSP code actions for the source position represented by the current line.
 ---
 ---@param opts? vim.lsp.buf.code_action.Opts
 function M.code_action(opts)
-  return require("zdiag.usecase").code_action(opts)
+  return require('zdiag.usecase').code_action(opts)
 end
 
 ---Open diagnostics for the source position represented by the cursor.
@@ -49,8 +49,7 @@ end
 ---@param opts? vim.diagnostic.Opts.Float
 ---@return integer? float_bufnr
 function M.diagnostic_open_float(opts)
-  return require("zdiag.usecase")
-      .diagnostic_open_float(opts)
+  return require('zdiag.usecase').diagnostic_open_float(opts)
 end
 
 ---Move to another diagnostic, continuing across source buffers in a zdiag view.
@@ -58,7 +57,7 @@ end
 ---@param opts vim.diagnostic.JumpOpts
 ---@return vim.Diagnostic?
 function M.diagnostic_jump(opts)
-  return require("zdiag.usecase").diagnostic_jump(opts)
+  return require('zdiag.usecase').diagnostic_jump(opts)
 end
 
 return M

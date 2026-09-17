@@ -5,11 +5,11 @@ local M = {}
 ---@param severity string|integer|nil
 ---@return integer?
 local function severity_number(severity)
-  if type(severity) == "number" then
+  if type(severity) == 'number' then
     return severity
   end
 
-  if type(severity) == "string" then
+  if type(severity) == 'string' then
     return vim.diagnostic.severity[severity:upper()]
   end
 
@@ -26,20 +26,15 @@ local function matches_severity(diagnostic, severity)
     return true
   end
 
-  if type(severity) ~= "table" then
+  if type(severity) ~= 'table' then
     return diagnostic.severity == severity_number(severity)
   end
 
   if severity.min or severity.max then
-    local min =
-        severity_number(severity.min)
-        or vim.diagnostic.severity.HINT
-    local max =
-        severity_number(severity.max)
-        or vim.diagnostic.severity.ERROR
+    local min = severity_number(severity.min) or vim.diagnostic.severity.HINT
+    local max = severity_number(severity.max) or vim.diagnostic.severity.ERROR
 
-    return diagnostic.severity <= min
-        and diagnostic.severity >= max
+    return diagnostic.severity <= min and diagnostic.severity >= max
   end
 
   for _, value in ipairs(severity) do
@@ -61,7 +56,7 @@ local function matches_namespace(diagnostic, namespace)
     return true
   end
 
-  if type(namespace) == "number" then
+  if type(namespace) == 'number' then
     return diagnostic.namespace == namespace
   end
 
@@ -74,28 +69,19 @@ end
 ---@param opts vim.diagnostic.JumpOpts
 ---@return boolean
 local function matches_filters(diagnostic, opts)
-  if not matches_severity(diagnostic, opts.severity)
-      or not matches_namespace(
-        diagnostic,
-        opts.namespace
-      )
-  then
+  if not matches_severity(diagnostic, opts.severity) or not matches_namespace(diagnostic, opts.namespace) then
     return false
   end
 
-  if opts.lnum
-      and (opts.lnum < diagnostic.lnum
-        or opts.lnum > diagnostic.end_lnum)
-  then
+  if opts.lnum and (opts.lnum < diagnostic.lnum or opts.lnum > diagnostic.end_lnum) then
     return false
   end
 
   if opts.enabled ~= nil then
-    local enabled =
-        vim.diagnostic.is_enabled({
-          bufnr = diagnostic.bufnr,
-          ns_id = diagnostic.namespace,
-        })
+    local enabled = vim.diagnostic.is_enabled {
+      bufnr = diagnostic.bufnr,
+      ns_id = diagnostic.namespace,
+    }
 
     if enabled ~= opts.enabled then
       return false
@@ -114,22 +100,14 @@ local function collect(view, opts)
   local entries = {}
   local positions = {}
 
-  local extmarks = vim.api.nvim_buf_get_extmarks(
-    view.bufnr,
-    view.ctx.ns,
-    0,
-    -1,
-    { type = "virt_text" }
-  )
+  local extmarks = vim.api.nvim_buf_get_extmarks(view.bufnr, view.ctx.ns, 0, -1, { type = 'virt_text' })
 
   for _, extmark in ipairs(extmarks) do
     positions[extmark[1]] = extmark
   end
 
   for _, decoration in ipairs(view.decorations) do
-    local position =
-        decoration.mark_id
-        and positions[decoration.mark_id]
+    local position = decoration.mark_id and positions[decoration.mark_id]
     local diagnostic = decoration.diagnostic
 
     if position and matches_filters(diagnostic, opts) then
@@ -145,10 +123,7 @@ local function collect(view, opts)
     local highest = vim.diagnostic.severity.HINT
 
     for _, entry in ipairs(entries) do
-      highest = math.min(
-        highest,
-        entry.diagnostic.severity
-      )
+      highest = math.min(highest, entry.diagnostic.severity)
     end
 
     entries = vim.tbl_filter(function(entry)
@@ -174,8 +149,7 @@ end
 ---@param col integer
 ---@return boolean
 local function is_after(entry, row, col)
-  return entry.row > row
-      or entry.row == row and entry.col > col
+  return entry.row > row or entry.row == row and entry.col > col
 end
 
 ---Return whether one view position is before another.
@@ -185,8 +159,7 @@ end
 ---@param col integer
 ---@return boolean
 local function is_before(entry, row, col)
-  return entry.row < row
-      or entry.row == row and entry.col < col
+  return entry.row < row or entry.row == row and entry.col < col
 end
 
 ---Find the next entry from a position.
@@ -226,7 +199,7 @@ end
 ---@return boolean
 local function same_diagnostic(left, right)
   return left == right
-      or left.bufnr == right.bufnr
+    or left.bufnr == right.bufnr
       and left.namespace == right.namespace
       and left.lnum == right.lnum
       and left.col == right.col
@@ -242,26 +215,18 @@ end
 local function open_float(view, opts, position)
   if not position then
     local cursor = vim.api.nvim_win_get_cursor(0)
-    position =
-        require("zdiag.view.source").get_position(
-          view,
-          cursor[1] - 1,
-          cursor[2]
-        )
+    position = require('zdiag.view.source').get_position(view, cursor[1] - 1, cursor[2])
   end
 
   if not position then
-    vim.notify(
-      "zdiag: cursor is not on a source line",
-      vim.log.levels.INFO
-    )
+    vim.notify('zdiag: cursor is not on a source line', vim.log.levels.INFO)
     return nil
   end
 
   local float_opts = vim.deepcopy(opts or {})
   float_opts.bufnr = position.bufnr
   float_opts.pos = { position.row, position.col }
-  float_opts.scope = float_opts.scope or "line"
+  float_opts.scope = float_opts.scope or 'line'
 
   return vim.diagnostic.open_float(float_opts)
 end
@@ -285,15 +250,10 @@ local function run_on_jump(view, winid, diagnostic, opts)
   local callback = opts.on_jump
 
   if opts.float then
-    local float_opts =
-        type(opts.float) == "table"
-        and vim.deepcopy(opts.float)
-        or {}
+    local float_opts = type(opts.float) == 'table' and vim.deepcopy(opts.float) or {}
 
     callback = function(jumped)
-      if not vim.api.nvim_win_is_valid(winid)
-          or vim.api.nvim_win_get_buf(winid) ~= view.bufnr
-      then
+      if not vim.api.nvim_win_is_valid(winid) or vim.api.nvim_win_get_buf(winid) ~= view.bufnr then
         return
       end
 
@@ -302,15 +262,11 @@ local function run_on_jump(view, winid, diagnostic, opts)
           float_opts.focus = false
         end
 
-        open_float(
-          view,
-          float_opts,
-          {
-            bufnr = jumped.bufnr,
-            row = jumped.lnum,
-            col = jumped.col,
-          }
-        )
+        open_float(view, float_opts, {
+          bufnr = jumped.bufnr,
+          row = jumped.lnum,
+          col = jumped.col,
+        })
       end)
     end
   end
@@ -328,7 +284,7 @@ end
 ---@param opts vim.diagnostic.JumpOpts
 ---@return vim.Diagnostic?
 function M.jump(view, opts)
-  vim.validate("opts", opts, "table")
+  vim.validate('opts', opts, 'table')
 
   assert(
     opts.diagnostic or opts.count,
@@ -336,11 +292,7 @@ function M.jump(view, opts)
   )
 
   local config = vim.diagnostic.config() or {}
-  opts = vim.tbl_deep_extend(
-    "keep",
-    vim.deepcopy(opts),
-    config.jump or {}
-  )
+  opts = vim.tbl_deep_extend('keep', vim.deepcopy(opts), config.jump or {})
 
   if opts.wrap == nil then
     opts.wrap = true
@@ -352,25 +304,16 @@ function M.jump(view, opts)
     winid = vim.api.nvim_get_current_win()
   end
 
-  if not vim.api.nvim_win_is_valid(winid)
-      or vim.api.nvim_win_get_buf(winid) ~= view.bufnr
-  then
-    error("zdiag: diagnostic jump window is not showing the diagnostics view")
+  if not vim.api.nvim_win_is_valid(winid) or vim.api.nvim_win_get_buf(winid) ~= view.bufnr then
+    error('zdiag: diagnostic jump window is not showing the diagnostics view')
   end
 
-  local entries = collect(
-    view,
-    opts.diagnostic and {} or opts
-  )
+  local entries = collect(view, opts.diagnostic and {} or opts)
   local target
 
   if opts.diagnostic then
     for _, entry in ipairs(entries) do
-      if same_diagnostic(
-            entry.diagnostic,
-            opts.diagnostic
-          )
-      then
+      if same_diagnostic(entry.diagnostic, opts.diagnostic) then
         target = entry
         break
       end
@@ -382,22 +325,12 @@ function M.jump(view, opts)
       return nil
     end
 
-    local position =
-        opts.pos
-        or opts.cursor_position
-        or vim.api.nvim_win_get_cursor(winid)
+    local position = opts.pos or opts.cursor_position or vim.api.nvim_win_get_cursor(winid)
     local row = position[1] - 1
     local col = position[2]
 
     for _ = 1, math.abs(count) do
-      local entry =
-          next_entry(
-            entries,
-            row,
-            col,
-            count > 0,
-            opts.wrap
-          )
+      local entry = next_entry(entries, row, col, count > 0, opts.wrap)
 
       if not entry then
         break
@@ -410,16 +343,12 @@ function M.jump(view, opts)
   end
 
   if not target then
-    vim.api.nvim_echo(
+    vim.api.nvim_echo({
       {
-        {
-          "No more valid diagnostics to move to",
-          "WarningMsg",
-        },
+        'No more valid diagnostics to move to',
+        'WarningMsg',
       },
-      true,
-      {}
-    )
+    }, true, {})
     return nil
   end
 
@@ -427,21 +356,13 @@ function M.jump(view, opts)
     vim.cmd("normal! m'")
   end)
 
-  vim.api.nvim_win_set_cursor(
-    winid,
-    { target.row + 1, target.col }
-  )
+  vim.api.nvim_win_set_cursor(winid, { target.row + 1, target.col })
 
   vim.api.nvim_win_call(winid, function()
-    vim.cmd("normal! zv")
+    vim.cmd('normal! zv')
   end)
 
-  run_on_jump(
-    view,
-    winid,
-    target.diagnostic,
-    opts
-  )
+  run_on_jump(view, winid, target.diagnostic, opts)
 
   return target.diagnostic
 end

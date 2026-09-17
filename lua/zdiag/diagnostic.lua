@@ -50,8 +50,7 @@ end
 ---
 ---@return zdiag.BufferDiagnostics[]
 function M.get_by_buffer()
-  local severity =
-      require("zdiag.config").get_diagnostic_severity()
+  local severity = require('zdiag.config').get_diagnostic_severity()
   local diagnostics = vim.diagnostic.get(nil, {
     severity = severity,
   })
@@ -85,6 +84,19 @@ function M.build_ranges(diagnostics, context_lines)
   end
 
   return ranges
+end
+
+function M.group_by_line(diagnostics)
+  local result = {}
+
+  for _, diagnostic in ipairs(diagnostics) do
+    local line = diagnostic.lnum
+
+    result[line] = result[line] or {}
+    table.insert(result[line], diagnostic)
+  end
+
+  return result
 end
 
 return M

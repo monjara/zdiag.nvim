@@ -21,26 +21,18 @@ end
 ---
 ---@param view zdiag.View
 function Separator:apply(view)
-  local highlight =
-      require("zdiag.highlight").separator_hl()
+  local highlight = require('zdiag.highlight').separator_hl()
 
-  self.mark_id =
-      vim.api.nvim_buf_set_extmark(
-        view.bufnr,
-        view.ctx.ns,
-        self.row,
-        0,
-        {
-          right_gravity = false,
-          virt_text = {
-            {
-              string.rep("┈", math.max(vim.o.columns, 1)),
-              highlight,
-            },
-          },
-          virt_text_pos = "overlay",
-        }
-      )
+  self.mark_id = vim.api.nvim_buf_set_extmark(view.bufnr, view.ctx.ns, self.row, 0, {
+    right_gravity = false,
+    virt_text = {
+      {
+        string.rep('┈', math.max(vim.o.columns, 1)),
+        highlight,
+      },
+    },
+    virt_text_pos = 'overlay',
+  })
 end
 
 return Separator
