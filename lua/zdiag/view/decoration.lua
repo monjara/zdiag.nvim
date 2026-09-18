@@ -1,39 +1,27 @@
 ---@class zdiag.Decoration
----@field type "line"|"diagnostic"
 ---@field row integer
----@field source_lnum integer?
----@field col integer?
----@field diagnostic vim.Diagnostic?
+---@field col integer
+---@field line_length integer
+---@field diagnostic vim.Diagnostic
+---@field mark_id integer?
 ---@field apply fun(self: zdiag.Decoration, view: zdiag.View): nil
 
 local Decoration = {}
 Decoration.__index = Decoration
-
----Create a line-number decoration.
----
----@param row integer
----@param source_lnum integer
----@return zdiag.Decoration
-function Decoration:new_line(row, source_lnum)
-  return setmetatable({
-    type = "line",
-    row = row,
-    source_lnum = source_lnum,
-  }, self)
-end
 
 ---Create a diagnostic decoration.
 ---
 ---@param row integer
 ---@param col integer
 ---@param diagnostic vim.Diagnostic
+---@param line_length integer
 ---@return zdiag.Decoration
-function Decoration:new_diagnostic(row, col, diagnostic)
+function Decoration:new_diagnostic(row, col, diagnostic, line_length)
   return setmetatable({
-    type = "diagnostic",
     row = row,
     col = col,
     diagnostic = diagnostic,
+    line_length = line_length,
   }, self)
 end
 
@@ -41,65 +29,33 @@ end
 ---
 ---@param view zdiag.View
 function Decoration:apply(view)
-  if self.type == "line" then
-    local prefix =
-        string.format(
-          "%4d │ ",
-          self.source_lnum + 1
-        )
+  local diagnostic = self.diagnostic
 
-    vim.api.nvim_buf_set_extmark(
-      view.bufnr,
-      view.ctx.ns,
-      self.row,
-      0,
+  local col = math.min(self.col, self.line_length)
+
+  local end_col = math.min(math.max(col + 1, diagnostic.end_col or col + 1), self.line_length)
+
+  local opts = {
+    -- Preserve the whole-line diagnostic background underneath virtual text
+    -- while applying the severity group as its foreground.
+    hl_mode = 'combine',
+
+    virt_text = {
       {
-        virt_text = {
-          {
-            prefix,
-            "LineNr",
-          },
-        },
+        '  ' .. diagnostic.message,
+        require('zdiag.highlight').severity_hl(diagnostic.severity),
+      },
+    },
 
-        -- buffer本文には行番号を入れない
-        virt_text_pos = "inline",
-      }
-    )
-  elseif self.type == "diagnostic" then
-    local diagnostic =
-        self.diagnostic
+    virt_text_pos = 'eol',
+  }
 
-    vim.api.nvim_buf_set_extmark(
-      view.bufnr,
-      view.ctx.ns,
-      self.row,
-      self.col,
-      {
-        end_col = math.max(
-          self.col + 1,
-          diagnostic.end_col
-          or self.col + 1
-        ),
-
-        hl_group =
-            require("zdiag.highlight").severity_hl(
-              diagnostic.severity
-            ),
-
-        virt_text = {
-          {
-            "  "
-            .. diagnostic.message,
-            require("zdiag.highlight").severity_hl(
-              diagnostic.severity
-            ),
-          },
-        },
-
-        virt_text_pos = "eol",
-      }
-    )
+  if end_col > col then
+    opts.end_col = end_col
+    opts.hl_group = require('zdiag.highlight').severity_hl(diagnostic.severity)
   end
+
+  self.mark_id = vim.api.nvim_buf_set_extmark(view.bufnr, view.ctx.ns, self.row, col, opts)
 end
 
 return Decoration
