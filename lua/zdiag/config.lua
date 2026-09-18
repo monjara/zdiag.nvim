@@ -134,21 +134,21 @@ function M.get_diagnostic_severity()
   return options.diagnostics.severity
 end
 
----Return whether DiagnosticChanged events rebuild the view.
+---Return whether DiagnosticChanged events rebuild the workspace.
 ---
 ---@return boolean
 function M.is_auto_refresh_enabled()
   return options.auto_refresh.enabled
 end
 
----Return the delay before rebuilding the view.
+---Return the delay before rebuilding the workspace.
 ---
 ---@return integer
 function M.get_auto_refresh_delay()
   return options.auto_refresh.delay
 end
 
----Resolve how a source buffer is opened when jumping from the view.
+---Resolve how a source buffer is opened when jumping from the workspace.
 ---
 ---@param opts? zdiag.JumpOpts
 ---@return zdiag.JumpMode

@@ -2,7 +2,7 @@
 ---@field row integer
 ---@field mark_id integer?
 ---@field new fun(self: zdiag.Separator, row: integer): zdiag.Separator
----@field apply fun(self: zdiag.Separator, view: zdiag.View): nil
+---@field apply fun(self: zdiag.Separator, workspace: zdiag.Workspace): nil
 
 local Separator = {}
 Separator.__index = Separator
@@ -19,11 +19,11 @@ end
 
 ---Draw the separator on its empty placeholder line.
 ---
----@param view zdiag.View
-function Separator:apply(view)
+---@param workspace zdiag.Workspace
+function Separator:apply(workspace)
   local highlight = require('zdiag.highlight').separator_hl()
 
-  self.mark_id = vim.api.nvim_buf_set_extmark(view.bufnr, view.ctx.ns, self.row, 0, {
+  self.mark_id = vim.api.nvim_buf_set_extmark(workspace.bufnr, workspace.ctx.ns, self.row, 0, {
     right_gravity = false,
     virt_text = {
       {

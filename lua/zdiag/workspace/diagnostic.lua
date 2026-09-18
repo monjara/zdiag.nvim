@@ -93,22 +93,22 @@ local function matches_filters(diagnostic, opts)
   return true
 end
 
----Collect diagnostics in their current order in the editable view.
+---Collect diagnostics in their current order in the editable workspace.
 ---
----@param view zdiag.View
+---@param workspace zdiag.Workspace
 ---@param opts vim.diagnostic.JumpOpts
 ---@return { row: integer, col: integer, diagnostic: vim.Diagnostic }[]
-local function collect(view, opts)
+local function collect(workspace, opts)
   local entries = {}
   local positions = {}
 
-  local extmarks = vim.api.nvim_buf_get_extmarks(view.bufnr, view.ctx.ns, 0, -1, { type = 'virt_text' })
+  local extmarks = vim.api.nvim_buf_get_extmarks(workspace.bufnr, workspace.ctx.ns, 0, -1, { type = 'virt_text' })
 
   for _, extmark in ipairs(extmarks) do
     positions[extmark[1]] = extmark
   end
 
-  for _, decoration in ipairs(view.decorations) do
+  for _, decoration in ipairs(workspace.decorations) do
     local position = decoration.mark_id and positions[decoration.mark_id]
     local diagnostic = decoration.diagnostic
 
@@ -144,7 +144,7 @@ local function collect(view, opts)
   return entries
 end
 
----Return whether one view position is after another.
+---Return whether one workspace position is after another.
 ---
 ---@param entry { row: integer, col: integer }
 ---@param row integer
@@ -154,7 +154,7 @@ local function is_after(entry, row, col)
   return entry.row > row or entry.row == row and entry.col > col
 end
 
----Return whether one view position is before another.
+---Return whether one workspace position is before another.
 ---
 ---@param entry { row: integer, col: integer }
 ---@param row integer
@@ -210,14 +210,14 @@ end
 
 ---Open a diagnostic float at an explicit source position.
 ---
----@param view zdiag.View
+---@param workspace zdiag.Workspace
 ---@param opts? vim.diagnostic.Opts.Float
 ---@param position? { bufnr: integer, row: integer, col: integer }
 ---@return integer? float_bufnr
-local function open_float(view, opts, position)
+local function open_float(workspace, opts, position)
   if not position then
     local cursor = vim.api.nvim_win_get_cursor(0)
-    position = require('zdiag.view.source').get_position(view, cursor[1] - 1, cursor[2])
+    position = require('zdiag.workspace.source').get_position(workspace, cursor[1] - 1, cursor[2])
   end
 
   if not position then
@@ -233,22 +233,22 @@ local function open_float(view, opts, position)
   return vim.diagnostic.open_float(float_opts)
 end
 
----Open diagnostics for the source position represented by the view cursor.
+---Open diagnostics for the source position represented by the workspace cursor.
 ---
----@param view zdiag.View
+---@param workspace zdiag.Workspace
 ---@param opts? vim.diagnostic.Opts.Float
 ---@return integer? float_bufnr
-function M.open_float(view, opts)
-  return open_float(view, opts)
+function M.open_float(workspace, opts)
+  return open_float(workspace, opts)
 end
 
 ---Run the callback associated with a completed jump.
 ---
----@param view zdiag.View
+---@param workspace zdiag.Workspace
 ---@param winid integer
 ---@param diagnostic vim.Diagnostic
 ---@param opts vim.diagnostic.JumpOpts
-local function run_on_jump(view, winid, diagnostic, opts)
+local function run_on_jump(workspace, winid, diagnostic, opts)
   local callback = opts.on_jump
 
   if opts.float then
@@ -256,13 +256,13 @@ local function run_on_jump(view, winid, diagnostic, opts)
     local on_jump = callback
 
     callback = function(jumped, bufnr)
-      if vim.api.nvim_win_is_valid(winid) and vim.api.nvim_win_get_buf(winid) == view.bufnr then
+      if vim.api.nvim_win_is_valid(winid) and vim.api.nvim_win_get_buf(winid) == workspace.bufnr then
         vim.api.nvim_win_call(winid, function()
           if float_opts.focus == nil then
             float_opts.focus = false
           end
 
-          open_float(view, float_opts, {
+          open_float(workspace, float_opts, {
             bufnr = jumped.bufnr,
             row = jumped.lnum,
             col = jumped.col,
@@ -283,12 +283,12 @@ local function run_on_jump(view, winid, diagnostic, opts)
   end
 end
 
----Move to a diagnostic in the diagnostics view.
+---Move to a diagnostic in the diagnostics workspace.
 ---
----@param view zdiag.View
+---@param workspace zdiag.Workspace
 ---@param opts vim.diagnostic.JumpOpts
 ---@return vim.Diagnostic?
-function M.jump(view, opts)
+function M.jump(workspace, opts)
   vim.validate('opts', opts, 'table')
 
   assert(
@@ -309,11 +309,11 @@ function M.jump(view, opts)
     winid = vim.api.nvim_get_current_win()
   end
 
-  if not vim.api.nvim_win_is_valid(winid) or vim.api.nvim_win_get_buf(winid) ~= view.bufnr then
-    error('zdiag: diagnostic jump window is not showing the diagnostics view')
+  if not vim.api.nvim_win_is_valid(winid) or vim.api.nvim_win_get_buf(winid) ~= workspace.bufnr then
+    error('zdiag: diagnostic jump window is not showing the diagnostics workspace')
   end
 
-  local entries = collect(view, opts.diagnostic and {} or opts)
+  local entries = collect(workspace, opts.diagnostic and {} or opts)
   local target
 
   if opts.diagnostic then
@@ -367,7 +367,7 @@ function M.jump(view, opts)
     vim.cmd('normal! zv')
   end)
 
-  run_on_jump(view, winid, target.diagnostic, opts)
+  run_on_jump(workspace, winid, target.diagnostic, opts)
 
   return target.diagnostic
 end

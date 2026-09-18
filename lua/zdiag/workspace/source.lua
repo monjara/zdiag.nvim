@@ -1,14 +1,14 @@
 local M = {}
 
----Find the source block containing a row in the diagnostics view.
+---Find the source block containing a row in the diagnostics workspace.
 ---
----@param view zdiag.View
+---@param workspace zdiag.Workspace
 ---@param row integer
 ---@return zdiag.Block?
 ---@return integer? offset
-local function find_block(view, row)
-  for _, block in ipairs(view.blocks) do
-    local start_row, end_row = block:get_view_range(view)
+local function find_block(workspace, row)
+  for _, block in ipairs(workspace.blocks) do
+    local start_row, end_row = block:get_workspace_range(workspace)
 
     if start_row and end_row and row >= start_row and row < end_row then
       return block, row - start_row
@@ -18,14 +18,14 @@ local function find_block(view, row)
   return nil, nil
 end
 
----Return the source position represented by a row and column in the view.
+---Return the source position represented by a row and column in the workspace.
 ---
----@param view zdiag.View
+---@param workspace zdiag.Workspace
 ---@param row integer
 ---@param col integer
 ---@return { bufnr: integer, row: integer, col: integer, block: zdiag.Block }?
-function M.get_position(view, row, col)
-  local block, offset = find_block(view, row)
+function M.get_position(workspace, row, col)
+  local block, offset = find_block(workspace, row)
 
   if not block or not offset then
     return nil
@@ -50,13 +50,13 @@ end
 
 ---Run a callback with the source buffer and position under the cursor active.
 ---
----@param view zdiag.View
+---@param workspace zdiag.Workspace
 ---@param callback fun(): any
 ---@return boolean executed
 ---@return any result
-function M.call(view, callback)
+function M.call(workspace, callback)
   local cursor = vim.api.nvim_win_get_cursor(0)
-  local position = M.get_position(view, cursor[1] - 1, cursor[2])
+  local position = M.get_position(workspace, cursor[1] - 1, cursor[2])
 
   if not position then
     vim.notify('zdiag: cursor is not on a source line', vim.log.levels.INFO)

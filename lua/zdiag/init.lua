@@ -7,12 +7,12 @@ function M.setup(opts)
   require('zdiag.config').setup(opts)
 end
 
----Open the diagnostics view.
+---Open the diagnostics workspace.
 function M.open()
   require('zdiag.usecase').open()
 end
 
----Jump from the diagnostics view to the represented source line.
+---Jump from the diagnostics workspace to the represented source line.
 ---
 ---@param opts? zdiag.JumpOpts
 ---@return boolean jumped
@@ -20,7 +20,7 @@ function M.jump_to_source(opts)
   return require('zdiag.usecase').jump_to_source(opts)
 end
 
----Close the active diagnostics view buffer.
+---Close the active diagnostics workspace buffer.
 ---
 ---@param opts? { force?: boolean }
 ---@return boolean closed
@@ -29,7 +29,7 @@ function M.close(opts)
 end
 
 ---Call a callback at the buffer position represented by the current line.
----Outside a zdiag view, run it against the current buffer.
+---Outside a zdiag workspace, run it against the current buffer.
 ---
 ---@param callback fun(): any
 ---@return any
@@ -52,7 +52,7 @@ function M.diagnostic_open_float(opts)
   return require('zdiag.usecase').diagnostic_open_float(opts)
 end
 
----Move to another diagnostic, continuing across source buffers in a zdiag view.
+---Move to another diagnostic, continuing across source buffers in a zdiag workspace.
 ---
 ---@param opts vim.diagnostic.JumpOpts
 ---@return vim.Diagnostic?
