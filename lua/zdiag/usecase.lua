@@ -1,71 +1,8 @@
+---@class zdiag.Usecase
 local M = {}
 
 ---@type zdiag.Workspace?
 local active_workspace
-
----Build the current diagnostic data into a workspace.
----
----@param workspace zdiag.Workspace
----@return zdiag.Workspace
-local function build_workspace(workspace)
-  local buffers = require('zdiag.core.diagnostic').get_by_buffer()
-
-  workspace:build(buffers):render()
-
-  return workspace
-end
-
----Reload a workspace from the latest diagnostics.
----
----@param workspace zdiag.Workspace
-function M.reload(workspace)
-  if not vim.api.nvim_buf_is_valid(workspace.bufnr) then
-    return
-  end
-
-  local winid = vim.fn.bufwinid(workspace.bufnr)
-  local source_position
-
-  if winid ~= -1 then
-    local cursor = vim.api.nvim_win_get_cursor(winid)
-
-    source_position = require('zdiag.workspace.source').get_position(
-      workspace,
-      cursor[1] - 1,
-      cursor[2]
-    )
-  end
-
-  workspace:reset()
-  build_workspace(workspace)
-
-  if
-    winid == -1
-    or not vim.api.nvim_win_is_valid(winid)
-    or not source_position
-  then
-    return
-  end
-
-  for _, block in ipairs(workspace.blocks) do
-    if
-      block.bufnr == source_position.bufnr
-      and source_position.row >= block.source_start
-      and source_position.row < block.source_end
-    then
-      local start_row = block:get_workspace_range(workspace)
-
-      if start_row then
-        vim.api.nvim_win_set_cursor(winid, {
-          start_row + source_position.row - block.source_start + 1,
-          source_position.col,
-        })
-      end
-
-      break
-    end
-  end
-end
 
 ---Open a diagnostics workspace for the current Neovim session.
 function M.open()
@@ -81,7 +18,7 @@ function M.open()
         vim.log.levels.INFO
       )
     else
-      M.reload(active_workspace)
+      active_workspace:reload()
     end
 
     vim.api.nvim_set_current_buf(active_workspace.bufnr)
@@ -90,7 +27,7 @@ function M.open()
   end
 
   if active_workspace then
-    require('zdiag.workspace.autocmd').remove_autocmd(active_workspace)
+    active_workspace:dispose()
     active_workspace = nil
   end
 
@@ -98,7 +35,8 @@ function M.open()
   local ctx = Context:new()
 
   local Workspace = require('zdiag.workspace')
-  local workspace = build_workspace(Workspace:new(ctx))
+  local workspace = Workspace:new(ctx):build_workspace()
+  require('zdiag.workspace.autocmd').create_autocmd(workspace)
   active_workspace = workspace
 
   vim.api.nvim_set_current_buf(workspace.bufnr)
@@ -142,8 +80,8 @@ function M.close(opts)
   local workspace = active_workspace
 
   if not vim.api.nvim_buf_is_valid(workspace.bufnr) then
+    workspace:dispose()
     active_workspace = nil
-    require('zdiag.workspace.autocmd').remove_autocmd(workspace)
     return false
   end
 
@@ -157,13 +95,8 @@ function M.close(opts)
     return false
   end
 
-  vim.api.nvim_buf_delete(workspace.bufnr, { force = force })
-
-  require('zdiag.workspace.autocmd').remove_autocmd(workspace)
-
-  if active_workspace == workspace then
-    active_workspace = nil
-  end
+  workspace:dispose { force = force }
+  active_workspace = nil
 
   return true
 end

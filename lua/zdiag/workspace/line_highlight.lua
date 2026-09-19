@@ -1,7 +1,6 @@
 ---@class zdiag.LineHighlight
 ---@field row integer
 ---@field severity vim.diagnostic.Severity
----@field mark_id integer?
 ---@field apply fun(self: zdiag.LineHighlight, workspace: zdiag.Workspace): nil
 
 local LineHighlight = {}
@@ -29,17 +28,11 @@ function LineHighlight:apply(workspace)
     return
   end
 
-  self.mark_id = vim.api.nvim_buf_set_extmark(
-    workspace.bufnr,
-    workspace.ctx.ns,
-    self.row,
-    0,
-    {
-      line_hl_group = group,
-      priority = 10,
-      right_gravity = false,
-    }
-  )
+  vim.api.nvim_buf_set_extmark(workspace.bufnr, workspace.ctx.ns, self.row, 0, {
+    line_hl_group = group,
+    priority = 10,
+    right_gravity = false,
+  })
 end
 
 return LineHighlight

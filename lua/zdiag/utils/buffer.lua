@@ -63,11 +63,4 @@ function M.build_buffer()
   return bufnr
 end
 
----Clear the modified flag on a diagnostics workspace buffer.
----
----@param bufnr integer
-function M.mark_modified(bufnr)
-  vim.bo[bufnr].modified = false
-end
-
 return M

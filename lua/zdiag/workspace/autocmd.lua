@@ -67,7 +67,7 @@ function M.schedule_reload(workspace)
     end
 
     workspace.reload_deferred = false
-    require('zdiag.usecase').reload(workspace)
+    workspace:reload()
   end, require('zdiag.core.config').get_auto_refresh_delay())
 end
 
@@ -85,7 +85,12 @@ function M.create_autocmd(workspace)
     buffer = workspace.bufnr,
 
     callback = function()
-      require('zdiag.workspace.edit').apply_changes(workspace)
+      local ok = require('zdiag.workspace.edit').apply_changes(workspace)
+
+      if ok then
+        workspace.reload_deferred = false
+        M.schedule_reload(workspace)
+      end
     end,
   })
 
@@ -94,6 +99,10 @@ function M.create_autocmd(workspace)
     buffer = workspace.bufnr,
 
     callback = function()
+      if workspace.closed then
+        return
+      end
+
       local bufnr = workspace.bufnr
       workspace.closed = true
 
@@ -121,15 +130,15 @@ function M.create_autocmd(workspace)
     end,
   })
 
-  if require('zdiag.core.config').is_auto_refresh_enabled() then
-    vim.api.nvim_create_autocmd('DiagnosticChanged', {
-      group = group,
+  vim.api.nvim_create_autocmd('DiagnosticChanged', {
+    group = group,
 
-      callback = function()
+    callback = function()
+      if require('zdiag.core.config').is_auto_refresh_enabled() then
         M.schedule_reload(workspace)
-      end,
-    })
-  end
+      end
+    end,
+  })
 end
 
 ---Remove autocmds owned by a diagnostics workspace.

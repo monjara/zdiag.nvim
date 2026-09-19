@@ -227,7 +227,7 @@ end
 local function open_float(workspace, opts, position, open_float_fn)
   if not position then
     local cursor = vim.api.nvim_win_get_cursor(0)
-    position = require('zdiag.workspace.source').get_position(
+    position = require('zdiag.workspace.position').get_position(
       workspace,
       cursor[1] - 1,
       cursor[2]

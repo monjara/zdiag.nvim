@@ -12,22 +12,13 @@ local function prepare_window(mode)
   return vim.api.nvim_get_current_win()
 end
 
----Delete the diagnostics workspace after a successful close-mode jump.
----
----@param workspace zdiag.Workspace
-local function close_workspace(workspace)
-  vim.api.nvim_buf_delete(workspace.bufnr, { force = false })
-  workspace.closed = true
-  require('zdiag.workspace.autocmd').remove_autocmd(workspace)
-end
-
 ---Jump to the source line corresponding to the current cursor position in the workspace.
 ---
 ---@param workspace zdiag.Workspace
 ---@param opts? zdiag.JumpOpts
 function M.jump_to_source(workspace, opts)
   local cursor = vim.api.nvim_win_get_cursor(0)
-  local position = require('zdiag.workspace.source').get_position(
+  local position = require('zdiag.workspace.position').get_position(
     workspace,
     cursor[1] - 1,
     cursor[2]
@@ -55,7 +46,7 @@ function M.jump_to_source(workspace, opts)
   vim.api.nvim_win_set_cursor(target_win, { position.row + 1, position.col })
 
   if mode == 'close' then
-    close_workspace(workspace)
+    workspace:dispose()
   end
 end
 
