@@ -80,6 +80,7 @@ end
 ---Apply changes from the workspace to the source files.
 ---
 ---@param workspace zdiag.Workspace
+---@return boolean true if changes were successfully written, false otherwise
 function M.apply_changes(workspace)
   local edits = collect_edits(workspace)
 
@@ -132,7 +133,7 @@ function M.apply_changes(workspace)
           vim.log.levels.ERROR
         )
 
-        return
+        return false
       end
     end
   end
@@ -142,11 +143,9 @@ function M.apply_changes(workspace)
   end
 
   workspace:mark_unmodified()
-  workspace.reload_deferred = false
-
-  require('zdiag.workspace.autocmd').schedule_reload(workspace)
 
   vim.notify('zdiag: changes written to source files', vim.log.levels.INFO)
+  return true
 end
 
 return M

@@ -85,7 +85,12 @@ function M.create_autocmd(workspace)
     buffer = workspace.bufnr,
 
     callback = function()
-      require('zdiag.workspace.edit').apply_changes(workspace)
+      local ok = require('zdiag.workspace.edit').apply_changes(workspace)
+
+      if ok then
+        workspace.reload_deferred = false
+        M.schedule_reload(workspace)
+      end
     end,
   })
 
