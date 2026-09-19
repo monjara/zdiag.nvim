@@ -19,18 +19,18 @@ local function same_lines(left, right)
   return true
 end
 
----Collect edited source blocks from the diagnostics view.
+---Collect edited source blocks from the diagnostics workspace.
 ---
----@param view zdiag.View
+---@param workspace zdiag.Workspace
 ---@return { block: zdiag.Block, bufnr: integer, source_start: integer, source_end: integer, lines: string[] }[]
-local function collect_edits(view)
+local function collect_edits(workspace)
   local edits = {}
 
-  for _, block in ipairs(view.blocks) do
-    local start_row, end_row = block:get_view_range(view)
+  for _, block in ipairs(workspace.blocks) do
+    local start_row, end_row = block:get_workspace_range(workspace)
 
     if start_row and end_row then
-      local edited_lines = vim.api.nvim_buf_get_lines(view.bufnr, start_row, end_row, false)
+      local edited_lines = vim.api.nvim_buf_get_lines(workspace.bufnr, start_row, end_row, false)
 
       if not same_lines(edited_lines, block.original_lines) then
         table.insert(edits, {
@@ -51,11 +51,11 @@ end
 ---
 ---Blocks do not overlap, so only blocks after the edited source range move.
 ---Keeping these ranges current makes another write safe before the scheduled
----diagnostic reload has rebuilt the view.
+---diagnostic reload has rebuilt the workspace.
 ---
----@param view zdiag.View
+---@param workspace zdiag.Workspace
 ---@param edit { block: zdiag.Block, bufnr: integer, source_start: integer, source_end: integer, lines: string[] }
-local function update_source_ranges(view, edit)
+local function update_source_ranges(workspace, edit)
   local line_delta = #edit.lines - (edit.source_end - edit.source_start)
 
   edit.block.source_end = edit.source_start + #edit.lines
@@ -64,7 +64,7 @@ local function update_source_ranges(view, edit)
     return
   end
 
-  for _, block in ipairs(view.blocks) do
+  for _, block in ipairs(workspace.blocks) do
     if block ~= edit.block and block.bufnr == edit.bufnr and block.source_start >= edit.source_end then
       block.source_start = block.source_start + line_delta
       block.source_end = block.source_end + line_delta
@@ -72,11 +72,11 @@ local function update_source_ranges(view, edit)
   end
 end
 
----Apply changes from the view to the source files.
+---Apply changes from the workspace to the source files.
 ---
----@param view zdiag.View
-function M.apply_changes(view)
-  local edits = collect_edits(view)
+---@param workspace zdiag.Workspace
+function M.apply_changes(workspace)
+  local edits = collect_edits(workspace)
 
   -- 同じファイル内では後ろから適用する。
   -- 前方で行が増減しても後方rangeの位置がずれない。
@@ -99,7 +99,7 @@ function M.apply_changes(view)
 
     vim.api.nvim_buf_set_lines(edit.bufnr, edit.source_start, edit.source_end, false, edit.lines)
 
-    update_source_ranges(view, edit)
+    update_source_ranges(workspace, edit)
     touched_buffers[edit.bufnr] = true
 
     ::continue::
@@ -127,10 +127,10 @@ function M.apply_changes(view)
     edit.block.original_lines = vim.deepcopy(edit.lines)
   end
 
-  view:mark_unmodified()
-  view.reload_deferred = false
+  workspace:mark_unmodified()
+  workspace.reload_deferred = false
 
-  require('zdiag.view.autocmd').schedule_reload(view)
+  require('zdiag.workspace.autocmd').schedule_reload(workspace)
 
   vim.notify('zdiag: changes written to source files', vim.log.levels.INFO)
 end

@@ -4,7 +4,7 @@
 ---@field line_length integer
 ---@field diagnostic vim.Diagnostic
 ---@field mark_id integer?
----@field apply fun(self: zdiag.Decoration, view: zdiag.View): nil
+---@field apply fun(self: zdiag.Decoration, workspace: zdiag.Workspace): nil
 
 local Decoration = {}
 Decoration.__index = Decoration
@@ -25,10 +25,10 @@ function Decoration:new_diagnostic(row, col, diagnostic, line_length)
   }, self)
 end
 
----Apply the decoration to the view.
+---Apply the decoration to the workspace.
 ---
----@param view zdiag.View
-function Decoration:apply(view)
+---@param workspace zdiag.Workspace
+function Decoration:apply(workspace)
   local diagnostic = self.diagnostic
 
   local col = math.min(self.col, self.line_length)
@@ -55,7 +55,7 @@ function Decoration:apply(view)
     opts.hl_group = require('zdiag.highlight').severity_hl(diagnostic.severity)
   end
 
-  self.mark_id = vim.api.nvim_buf_set_extmark(view.bufnr, view.ctx.ns, self.row, col, opts)
+  self.mark_id = vim.api.nvim_buf_set_extmark(workspace.bufnr, workspace.ctx.ns, self.row, col, opts)
 end
 
 return Decoration

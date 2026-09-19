@@ -31,7 +31,7 @@ function M.ensure_loaded(bufnr)
   end
 end
 
----Create the editable diagnostics view buffer.
+---Create the editable diagnostics workspace buffer.
 ---
 ---@return integer bufnr
 function M.build_buffer()
@@ -59,7 +59,7 @@ function M.build_buffer()
   return bufnr
 end
 
----Clear the modified flag on a diagnostics view buffer.
+---Clear the modified flag on a diagnostics workspace buffer.
 ---
 ---@param bufnr integer
 function M.mark_modified(bufnr)
