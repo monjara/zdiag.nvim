@@ -93,12 +93,6 @@ function M.open()
   local workspace = build_workspace(Workspace:new(ctx))
   active_workspace = workspace
 
-  vim.api.nvim_buf_create_user_command(workspace.bufnr, 'ZdiagCodeAction', function()
-    workspace:code_action()
-  end, {
-    desc = 'Request LSP code actions for the source under the cursor',
-  })
-
   vim.api.nvim_set_current_buf(workspace.bufnr)
   vim.bo[workspace.bufnr].filetype = 'zdiag'
 end
