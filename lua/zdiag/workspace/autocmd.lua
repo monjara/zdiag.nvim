@@ -18,7 +18,7 @@ local function ensure_highlight_autocmd()
 
   local group = vim.api.nvim_create_augroup('zdiag_highlight', { clear = true })
 
-  vim.core.api.nvim_create_autocmd('ColorScheme', {
+  vim.api.nvim_create_autocmd('ColorScheme', {
     group = group,
 
     callback = function()
