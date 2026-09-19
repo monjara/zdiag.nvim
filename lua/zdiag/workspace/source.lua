@@ -1,3 +1,5 @@
+local Mode = require('zdiag.utils.mode')
+
 local M = {}
 
 ---@class zdiag.SourcePosition
@@ -13,21 +15,13 @@ local M = {}
 ---@field workspace_anchor { row: integer, col: integer }
 ---@field workspace_cursor { row: integer, col: integer }
 
----Return whether a mode is one of the Visual modes.
----
----@param mode string
----@return boolean
-local function is_visual(mode)
-  return mode == 'v' or mode == 'V' or mode == '\22'
-end
-
 ---Translate the active Visual selection to positions in one source block.
 ---
 ---@param workspace zdiag.Workspace
 ---@param mode string
 ---@return zdiag.SourceSelection?
 local function get_selection(workspace, mode)
-  if not is_visual(mode) then
+  if not Mode.is_visual(mode) then
     return nil
   end
 
@@ -79,7 +73,8 @@ end
 
 ---Leave Visual mode when it is still active.
 local function stop_visual()
-  if is_visual(vim.api.nvim_get_mode().mode) then
+  local mode = vim.api.nvim_get_mode().mode
+  if Mode.is_visual(mode) then
     local escape = vim.api.nvim_replace_termcodes('<Esc>', true, false, true)
     vim.cmd('normal! ' .. escape)
   end
@@ -151,7 +146,7 @@ function M.call(workspace, callback)
   local mode = vim.api.nvim_get_mode().mode
   local selection = get_selection(workspace, mode)
 
-  if is_visual(mode) and not selection then
+  if Mode.is_visual(mode) and not selection then
     return false, nil
   end
 
