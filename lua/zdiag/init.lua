@@ -4,7 +4,7 @@ local M = {}
 ---
 ---@param opts? zdiag.Config
 function M.setup(opts)
-  require('zdiag.config').setup(opts)
+  require('zdiag.core.config').setup(opts)
 end
 
 ---Open the diagnostics workspace.

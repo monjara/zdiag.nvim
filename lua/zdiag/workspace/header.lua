@@ -24,16 +24,22 @@ end
 ---
 ---@param workspace zdiag.Workspace
 function Header:apply(workspace)
-  local highlight = require('zdiag.highlight').header_hl()
+  local highlight = require('zdiag.core.highlight').header_hl()
 
-  self.mark_id = vim.api.nvim_buf_set_extmark(workspace.bufnr, workspace.ctx.ns, self.row, 0, {
-    line_hl_group = highlight,
-    right_gravity = false,
-    virt_text = {
-      { self.text, highlight },
-    },
-    virt_text_pos = 'overlay',
-  })
+  self.mark_id = vim.api.nvim_buf_set_extmark(
+    workspace.bufnr,
+    workspace.ctx.ns,
+    self.row,
+    0,
+    {
+      line_hl_group = highlight,
+      right_gravity = false,
+      virt_text = {
+        { self.text, highlight },
+      },
+      virt_text_pos = 'overlay',
+    }
+  )
 end
 
 return Header

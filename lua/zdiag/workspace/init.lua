@@ -26,7 +26,7 @@ Workspace.__index = Workspace
 ---@param ctx zdiag.Context
 ---@return zdiag.Workspace
 function Workspace:new(ctx)
-  local bufnr = require('zdiag.buffer').build_buffer()
+  local bufnr = require('zdiag.utils.buffer').build_buffer()
 
   return setmetatable({
     ctx = ctx,
@@ -67,7 +67,7 @@ end
 
 ---Clear the modified flag on the workspace buffer.
 function Workspace:mark_unmodified()
-  require('zdiag.buffer').mark_modified(self.bufnr)
+  require('zdiag.utils.buffer').mark_modified(self.bufnr)
 end
 
 ---Jump to the source of the diagnostic under the cursor.

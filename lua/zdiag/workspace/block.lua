@@ -33,13 +33,25 @@ end
 ---
 ---@param workspace zdiag.Workspace
 function Block:attach_mark(workspace)
-  self.start_mark = vim.api.nvim_buf_set_extmark(workspace.bufnr, workspace.ctx.ns, self.workspace_start, 0, {
-    right_gravity = false,
-  })
+  self.start_mark = vim.api.nvim_buf_set_extmark(
+    workspace.bufnr,
+    workspace.ctx.ns,
+    self.workspace_start,
+    0,
+    {
+      right_gravity = false,
+    }
+  )
 
-  self.end_mark = vim.api.nvim_buf_set_extmark(workspace.bufnr, workspace.ctx.ns, self.workspace_end, 0, {
-    right_gravity = true,
-  })
+  self.end_mark = vim.api.nvim_buf_set_extmark(
+    workspace.bufnr,
+    workspace.ctx.ns,
+    self.workspace_end,
+    0,
+    {
+      right_gravity = true,
+    }
+  )
 
   self.workspace_start = nil
   self.workspace_end = nil
@@ -55,7 +67,12 @@ local function get_mark_row(workspace, mark_id)
     return nil
   end
 
-  local position = vim.api.nvim_buf_get_extmark_by_id(workspace.bufnr, workspace.ctx.ns, mark_id, {})
+  local position = vim.api.nvim_buf_get_extmark_by_id(
+    workspace.bufnr,
+    workspace.ctx.ns,
+    mark_id,
+    {}
+  )
 
   if #position == 0 then
     return nil
@@ -70,7 +87,8 @@ end
 ---@return integer?
 ---@return integer?
 function Block:get_workspace_range(workspace)
-  return get_mark_row(workspace, self.start_mark), get_mark_row(workspace, self.end_mark)
+  return get_mark_row(workspace, self.start_mark),
+    get_mark_row(workspace, self.end_mark)
 end
 
 return Block
