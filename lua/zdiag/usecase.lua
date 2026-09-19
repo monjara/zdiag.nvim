@@ -1,3 +1,6 @@
+local Context = require('zdiag.core.context')
+local Workspace = require('zdiag.workspace')
+
 ---@class zdiag.Usecase
 local M = {}
 
@@ -31,11 +34,8 @@ function M.open()
     active_workspace = nil
   end
 
-  local Context = require('zdiag.core.context')
-  local ctx = Context:new()
+  local workspace = Workspace:new(Context:new()):build()
 
-  local Workspace = require('zdiag.workspace')
-  local workspace = Workspace:new(ctx):build()
   require('zdiag.workspace.autocmd').create_autocmd(workspace)
   active_workspace = workspace
 
@@ -46,59 +46,50 @@ end
 ---Jump from the active diagnostics workspace to the represented source line.
 ---
 ---@param opts? zdiag.JumpOpts
----@return boolean jumped
 function M.jump_to_source(opts)
   if
     not active_workspace
     or not vim.api.nvim_buf_is_valid(active_workspace.bufnr)
     or vim.api.nvim_get_current_buf() ~= active_workspace.bufnr
   then
-    return false
+    return
   end
 
-  local workspace = active_workspace
-  require('zdiag.workspace.jump').jump_to_source(workspace, opts)
+  require('zdiag.workspace.jump').jump_to_source(active_workspace, opts)
 
-  if not vim.api.nvim_buf_is_valid(workspace.bufnr) then
+  if not vim.api.nvim_buf_is_valid(active_workspace.bufnr) then
     active_workspace = nil
   end
-
-  return true
 end
 
 ---Close the active diagnostics workspace buffer.
 ---
 ---@param opts? { force?: boolean }
----@return boolean closed
 function M.close(opts)
   opts = opts or {}
 
   if not active_workspace then
-    return false
+    return
   end
 
-  local workspace = active_workspace
-
-  if not vim.api.nvim_buf_is_valid(workspace.bufnr) then
-    workspace:dispose()
+  if not vim.api.nvim_buf_is_valid(active_workspace.bufnr) then
+    active_workspace:dispose()
     active_workspace = nil
-    return false
+    return
   end
 
   local force = opts.force or false
 
-  if vim.bo[workspace.bufnr].modified and not force then
+  if vim.bo[active_workspace.bufnr].modified and not force then
     vim.notify(
       'zdiag: write or discard workspace changes before closing',
       vim.log.levels.WARN
     )
-    return false
+    return
   end
 
-  workspace:dispose { force = force }
+  active_workspace:dispose { force = force }
   active_workspace = nil
-
-  return true
 end
 
 ---Call a callback in the represented source context when called from the active workspace.
