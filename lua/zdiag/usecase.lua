@@ -163,7 +163,8 @@ function M.close(opts)
   return true
 end
 
----Call a callback at the represented position when called from the active workspace.
+---Call a callback in the represented source context when called from the active workspace.
+---Visual selections are translated when both ends belong to one source block.
 ---Outside the workspace, run the callback in the current buffer as usual.
 ---
 ---@param callback fun(): any
@@ -179,54 +180,6 @@ function M.call(callback)
   end
 
   return callback()
-end
-
----Request an LSP code action in the active source context.
----
----@param opts? vim.lsp.buf.code_action.Opts
-function M.code_action(opts)
-  if
-    active_workspace
-    and vim.api.nvim_buf_is_valid(active_workspace.bufnr)
-    and vim.api.nvim_get_current_buf() == active_workspace.bufnr
-  then
-    return active_workspace:code_action(opts)
-  end
-
-  return vim.lsp.buf.code_action(opts)
-end
-
----Open diagnostics for the source position represented by the cursor.
----
----@param opts? vim.diagnostic.Opts.Float
----@return integer? float_bufnr
-function M.diagnostic_open_float(opts)
-  if
-    active_workspace
-    and vim.api.nvim_buf_is_valid(active_workspace.bufnr)
-    and vim.api.nvim_get_current_buf() == active_workspace.bufnr
-  then
-    return active_workspace:diagnostic_open_float(opts)
-  end
-
-  return vim.diagnostic.open_float(opts)
-end
-
----Move to another diagnostic in the active diagnostics workspace.
----Outside the workspace, delegate to vim.diagnostic.jump().
----
----@param opts vim.diagnostic.JumpOpts
----@return vim.Diagnostic?
-function M.diagnostic_jump(opts)
-  if
-    active_workspace
-    and vim.api.nvim_buf_is_valid(active_workspace.bufnr)
-    and vim.api.nvim_get_current_buf() == active_workspace.bufnr
-  then
-    return active_workspace:diagnostic_jump(opts)
-  end
-
-  return vim.diagnostic.jump(opts)
 end
 
 return M

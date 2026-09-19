@@ -213,8 +213,9 @@ end
 ---@param workspace zdiag.Workspace
 ---@param opts? vim.diagnostic.Opts.Float
 ---@param position? { bufnr: integer, row: integer, col: integer }
+---@param open_float_fn? fun(opts: vim.diagnostic.Opts.Float): integer?, integer?
 ---@return integer? float_bufnr
-local function open_float(workspace, opts, position)
+local function open_float(workspace, opts, position, open_float_fn)
   if not position then
     local cursor = vim.api.nvim_win_get_cursor(0)
     position = require('zdiag.workspace.source').get_position(workspace, cursor[1] - 1, cursor[2])
@@ -230,16 +231,17 @@ local function open_float(workspace, opts, position)
   float_opts.pos = { position.row, position.col }
   float_opts.scope = float_opts.scope or 'line'
 
-  return vim.diagnostic.open_float(float_opts)
+  return (open_float_fn or vim.diagnostic.open_float)(float_opts)
 end
 
 ---Open diagnostics for the source position represented by the workspace cursor.
 ---
 ---@param workspace zdiag.Workspace
 ---@param opts? vim.diagnostic.Opts.Float
+---@param open_float_fn? fun(opts: vim.diagnostic.Opts.Float): integer?, integer?
 ---@return integer? float_bufnr
-function M.open_float(workspace, opts)
-  return open_float(workspace, opts)
+function M.open_float(workspace, opts, open_float_fn)
+  return open_float(workspace, opts, nil, open_float_fn)
 end
 
 ---Run the callback associated with a completed jump.
@@ -293,7 +295,7 @@ function M.jump(workspace, opts)
 
   assert(
     opts.diagnostic or opts.count,
-    'One of "diagnostic" or "count" must be specified in the options to zdiag.diagnostic_jump()'
+    'One of "diagnostic" or "count" must be specified in the options to vim.diagnostic.jump()'
   )
 
   local config = vim.diagnostic.config() or {}

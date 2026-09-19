@@ -16,9 +16,6 @@
 ---@field reset fun(self: zdiag.Workspace): zdiag.Workspace
 ---@field mark_unmodified fun(self: zdiag.Workspace): nil
 ---@field call fun(self: zdiag.Workspace, callback: fun()): boolean, any
----@field code_action fun(self: zdiag.Workspace, opts?: vim.lsp.buf.code_action.Opts): nil
----@field diagnostic_open_float fun(self: zdiag.Workspace, opts?: vim.diagnostic.Opts.Float): integer?
----@field diagnostic_jump fun(self: zdiag.Workspace, opts: vim.diagnostic.JumpOpts): vim.Diagnostic?
 ---@field new fun(self: zdiag.Workspace, ctx: zdiag.Context): zdiag.Workspace
 
 local Workspace = {}
@@ -80,36 +77,13 @@ function Workspace:jump(opts)
   require('zdiag.workspace.jump').jump_to_source(self, opts)
 end
 
----Call a callback at the source buffer position under the cursor.
+---Call a callback in the source context represented by the cursor or Visual selection.
 ---
 ---@param callback fun(): any
 ---@return boolean executed
 ---@return any result
 function Workspace:call(callback)
   return require('zdiag.workspace.source').call(self, callback)
-end
-
----Request LSP code actions for the source position under the cursor.
----
----@param opts? vim.lsp.buf.code_action.Opts
-function Workspace:code_action(opts)
-  require('zdiag.workspace.lsp').code_action(self, opts)
-end
-
----Open diagnostics for the source position under the cursor.
----
----@param opts? vim.diagnostic.Opts.Float
----@return integer? float_bufnr
-function Workspace:diagnostic_open_float(opts)
-  return require('zdiag.workspace.diagnostic').open_float(self, opts)
-end
-
----Move to another diagnostic in the diagnostics workspace.
----
----@param opts vim.diagnostic.JumpOpts
----@return vim.Diagnostic?
-function Workspace:diagnostic_jump(opts)
-  return require('zdiag.workspace.diagnostic').jump(self, opts)
 end
 
 return Workspace

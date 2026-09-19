@@ -94,12 +94,23 @@ dotted line. The separator uses the `ZdiagSeparator` highlight group, which
 links to `NonText` by default.
 
 The diagnostics workspace starts Tree-sitter highlighting when a parser for the
-source language is available. Map code actions explicitly through zdiag so
-the same mapping works in both source buffers and the diagnostics workspace:
+source language is available. `call()` translates both Normal-mode cursor
+positions and Visual selections to the underlying source context, so the same
+mapping works in source buffers and the diagnostics workspace:
 
 ```lua
 vim.keymap.set({ "n", "x" }, "gra", function()
-  require("zdiag").code_action()
+  require("zdiag").call(vim.lsp.buf.code_action)
+end)
+```
+
+Visual selections must stay within one source block. To pass options, wrap the
+call; `require("zdiag").code_action(opts)` remains available for compatibility
+and for mapping blockwise Visual selections.
+
+```lua
+require("zdiag").call(function()
+  vim.lsp.buf.code_action(opts)
 end)
 ```
 
@@ -122,8 +133,8 @@ require("zdiag").setup({
 })
 ```
 
-zdiag does not detect or copy existing keymaps. Other buffer-local operations
-can be mapped explicitly with `call`:
+zdiag does not detect or copy existing keymaps. Buffer-local operations can be
+mapped explicitly with `call`:
 
 ```lua
 vim.keymap.set("n", "K", function()
@@ -132,6 +143,10 @@ end)
 
 vim.keymap.set("n", "gd", function()
   require("zdiag").call(vim.lsp.buf.definition)
+end)
+
+vim.keymap.set("n", "gl", function()
+  require("zdiag").call(vim.diagnostic.open_float)
 end)
 ```
 
@@ -156,11 +171,23 @@ vim.api.nvim_create_autocmd("FileType", {
 })
 ```
 
-`diagnostic_jump()` continues into the next or previous source buffer instead
-of stopping at a file boundary. `diagnostic_open_float()` shows the diagnostic
-float for the source buffer represented by the current block.
-Diagnostics on the same source line are grouped into one float by default;
-pass `{ scope = "cursor" }` to limit it to the cursor position.
+`vim.diagnostic.jump()` called inside `call()` continues into the next or
+previous source buffer instead of stopping at a file boundary.
+`call(vim.diagnostic.open_float)` shows the diagnostic float for the source
+buffer represented by the current block.
+Diagnostics on the same source line are grouped into one float by default.
+Options can be passed with a closure; `diagnostic_open_float(opts)` remains
+available as a convenience wrapper.
+
+```lua
+require("zdiag").call(function()
+  vim.diagnostic.jump({ count = -1, float = true })
+end)
+
+require("zdiag").call(function()
+  vim.diagnostic.open_float({ scope = "cursor" })
+end)
+```
 The active diagnostics workspace can be closed with `require("zdiag").close()`;
 unsaved edits are protected unless `{ force = true }` is passed.
 

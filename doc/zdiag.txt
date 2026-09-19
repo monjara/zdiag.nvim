@@ -179,11 +179,11 @@ Unsaved changes in the workspace are not overwritten by an automatic rebuild.
 
 SOURCE OPERATIONS				*zdiag-source-operations*
 
-Operations such as hover, definitions, rename, and code actions must run in
-the source-buffer context represented by the current workspace line.
-|zdiag.call()| provides that context for custom mappings.  zdiag also
-provides dedicated helpers for code actions, diagnostic floats, and
-diagnostic navigation.
+Operations such as hover, definitions, rename, code actions, and diagnostic
+navigation must run in the source context represented by the current
+workspace line.  |zdiag.call()| provides that context for custom mappings.
+zdiag also provides compatibility helpers for code actions and diagnostic
+floats.
 
 ==============================================================================
 4. Lua API						*zdiag-api*
@@ -217,15 +217,35 @@ close({opts})						*zdiag.close()*
 	  {force}  (`boolean`, default `false`) Discard unsaved workspace changes.
 
 call({callback})					*zdiag.call()*
-	Run `{callback}` in the underlying buffer and at the position
-	represented by the current zdiag line.  The callback's result is
-	returned.
+	Run `{callback}` in the underlying source context represented by the
+	current zdiag cursor or Visual selection.  A Visual selection must stay
+	within one source block.  The callback's result is returned.
 
 	Outside the diagnostics workspace, `{callback}` runs normally in the current
 	buffer.  This makes one global mapping usable in both contexts:
 >
   vim.keymap.set("n", "K", function()
     return require("zdiag").call(vim.lsp.buf.hover)
+  end)
+<
+	Visual-aware callbacks can use the same wrapper in Normal and Visual modes:
+>
+  vim.keymap.set({ "n", "x" }, "gra", function()
+    return require("zdiag").call(vim.lsp.buf.code_action)
+  end)
+<
+	Diagnostic navigation and floats also work through the source context
+	provided by `call()`.  Navigation follows the order displayed in the
+	workspace and continues across source-buffer boundaries:
+>
+  vim.keymap.set("n", "g]", function()
+    return require("zdiag").call(function()
+      vim.diagnostic.jump({ count = -1, float = true })
+    end)
+  end)
+
+  vim.keymap.set("n", "gl", function()
+    return require("zdiag").call(vim.diagnostic.open_float)
   end)
 <
 
@@ -245,19 +265,6 @@ diagnostic_open_float({opts})			*zdiag.diagnostic_open_float()*
 
 	Outside the diagnostics workspace, this delegates directly to
 	|vim.diagnostic.open_float()|.
-
-diagnostic_jump({opts})				*zdiag.diagnostic_jump()*
-	Move between diagnostics in their displayed order, continuing across
-	source-buffer boundaries.  `{opts}` requires either `count` or
-	`diagnostic` and otherwise follows |vim.diagnostic.jump()|.  Positive
-	counts move forward and negative counts move backward.
-
-	Examples: >
-  require("zdiag").diagnostic_jump({ count = 1, float = true })
-  require("zdiag").diagnostic_jump({ count = -1, wrap = false })
-<
-	Outside the diagnostics workspace, this delegates directly to
-	|vim.diagnostic.jump()|.
 
 							*:ZdiagCodeAction*
 :ZdiagCodeAction
