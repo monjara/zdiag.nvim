@@ -1,3 +1,4 @@
+---@class zdiag.Usecase
 local M = {}
 
 ---@type zdiag.Workspace?

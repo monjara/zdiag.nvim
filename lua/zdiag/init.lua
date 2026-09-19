@@ -1,3 +1,4 @@
+---@class zdiag: zdiag.Usecase
 local M = {}
 
 ---@param opts? zdiag.Config
