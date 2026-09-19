@@ -17,6 +17,8 @@
 ---@field mark_unmodified fun(self: zdiag.Workspace): nil
 ---@field call fun(self: zdiag.Workspace, callback: fun()): boolean, any
 ---@field new fun(self: zdiag.Workspace, ctx: zdiag.Context): zdiag.Workspace
+---@field reload fun(self: zdiag.Workspace): nil
+---@field build_workspace fun(self: zdiag.Workspace): zdiag.Workspace
 
 local Workspace = {}
 Workspace.__index = Workspace
@@ -84,6 +86,68 @@ end
 ---@return any result
 function Workspace:call(callback)
   return require('zdiag.workspace.source').call(self, callback)
+end
+
+---Build the current diagnostic data into a workspace.
+---
+---@return zdiag.Workspace
+function Workspace:build_workspace()
+  local buffers = require('zdiag.core.diagnostic').get_by_buffer()
+
+  self:build(buffers):render()
+
+  return self
+end
+
+---Reload a workspace from the latest diagnostics.
+---
+function Workspace:reload()
+  if not vim.api.nvim_buf_is_valid(self.bufnr) then
+    return
+  end
+
+  local winid = vim.fn.bufwinid(self.bufnr)
+  local source_position
+
+  if winid ~= -1 then
+    local cursor = vim.api.nvim_win_get_cursor(winid)
+
+    source_position = require('zdiag.workspace.source').get_position(
+      self,
+      cursor[1] - 1,
+      cursor[2]
+    )
+  end
+
+  self:reset()
+  build_workspace(self)
+
+  if
+    winid == -1
+    or not vim.api.nvim_win_is_valid(winid)
+    or not source_position
+  then
+    return
+  end
+
+  for _, block in ipairs(self.blocks) do
+    if
+      block.bufnr == source_position.bufnr
+      and source_position.row >= block.source_start
+      and source_position.row < block.source_end
+    then
+      local start_row = block:get_workspace_range(self)
+
+      if start_row then
+        vim.api.nvim_win_set_cursor(winid, {
+          start_row + source_position.row - block.source_start + 1,
+          source_position.col,
+        })
+      end
+
+      break
+    end
+  end
 end
 
 return Workspace

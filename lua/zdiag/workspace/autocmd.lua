@@ -67,7 +67,7 @@ function M.schedule_reload(workspace)
     end
 
     workspace.reload_deferred = false
-    require('zdiag.usecase').reload(workspace)
+    workspace:reload()
   end, require('zdiag.core.config').get_auto_refresh_delay())
 end
 
