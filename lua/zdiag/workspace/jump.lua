@@ -27,7 +27,7 @@ end
 ---@param opts? zdiag.JumpOpts
 function M.jump_to_source(workspace, opts)
   local cursor = vim.api.nvim_win_get_cursor(0)
-  local position = require('zdiag.workspace.source').get_position(
+  local position = require('zdiag.workspace.position').get_position(
     workspace,
     cursor[1] - 1,
     cursor[2]

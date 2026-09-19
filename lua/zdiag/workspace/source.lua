@@ -13,59 +13,6 @@ local M = {}
 ---@field workspace_anchor { row: integer, col: integer }
 ---@field workspace_cursor { row: integer, col: integer }
 
----Find the source block containing a row in the diagnostics workspace.
----
----@param workspace zdiag.Workspace
----@param row integer
----@return zdiag.Block?
----@return integer? offset
-local function find_block(workspace, row)
-  for _, block in ipairs(workspace.blocks) do
-    local start_row, end_row = block:get_workspace_range(workspace)
-
-    if start_row and end_row and row >= start_row and row < end_row then
-      return block, row - start_row
-    end
-  end
-
-  return nil, nil
-end
-
----Return the source position represented by a row and column in the workspace.
----
----@param workspace zdiag.Workspace
----@param row integer
----@param col integer
----@return zdiag.SourcePosition?
-function M.get_position(workspace, row, col)
-  local block, offset = find_block(workspace, row)
-
-  if not block or not offset then
-    return nil
-  end
-
-  if not vim.api.nvim_buf_is_valid(block.bufnr) then
-    return nil
-  end
-
-  require('zdiag.utils.buffer').ensure_loaded(block.bufnr)
-
-  local source_row = block.source_start + offset
-  local source_line = vim.api.nvim_buf_get_lines(
-    block.bufnr,
-    source_row,
-    source_row + 1,
-    false
-  )[1] or ''
-
-  return {
-    bufnr = block.bufnr,
-    row = source_row,
-    col = math.min(col, #source_line),
-    block = block,
-  }
-end
-
 ---Return whether a mode is one of the Visual modes.
 ---
 ---@param mode string
@@ -86,9 +33,16 @@ local function get_selection(workspace, mode)
 
   local cursor = vim.api.nvim_win_get_cursor(0)
   local anchor = vim.fn.getpos('v')
-  local anchor_position =
-    M.get_position(workspace, anchor[2] - 1, anchor[3] - 1)
-  local cursor_position = M.get_position(workspace, cursor[1] - 1, cursor[2])
+  local anchor_position = require('zdiag.workspace.position').get_position(
+    workspace,
+    anchor[2] - 1,
+    anchor[3] - 1
+  )
+  local cursor_position = require('zdiag.workspace.position').get_position(
+    workspace,
+    cursor[1] - 1,
+    cursor[2]
+  )
 
   if
     not anchor_position
@@ -202,7 +156,11 @@ function M.call(workspace, callback)
   end
 
   local cursor = vim.api.nvim_win_get_cursor(0)
-  local position = M.get_position(workspace, cursor[1] - 1, cursor[2])
+  local position = require('zdiag.workspace.position').get_position(
+    workspace,
+    cursor[1] - 1,
+    cursor[2]
+  )
 
   if not position then
     vim.notify('zdiag: cursor is not on a source line', vim.log.levels.INFO)

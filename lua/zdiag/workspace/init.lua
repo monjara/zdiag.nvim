@@ -112,7 +112,7 @@ function Workspace:reload()
   if winid ~= -1 then
     local cursor = vim.api.nvim_win_get_cursor(winid)
 
-    source_position = require('zdiag.workspace.source').get_position(
+    source_position = require('zdiag.workspace.position').get_position(
       self,
       cursor[1] - 1,
       cursor[2]
