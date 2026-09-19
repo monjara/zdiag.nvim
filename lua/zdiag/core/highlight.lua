@@ -17,7 +17,11 @@ local line_highlight_cache = {}
 ---@param source_bufnr integer
 ---@return boolean started
 function M.start_treesitter(bufnr, source_bufnr)
-  if not vim.treesitter or type(vim.treesitter.start) ~= 'function' or not vim.api.nvim_buf_is_valid(source_bufnr) then
+  if
+    not vim.treesitter
+    or type(vim.treesitter.start) ~= 'function'
+    or not vim.api.nvim_buf_is_valid(source_bufnr)
+  then
     return false
   end
 
@@ -29,7 +33,10 @@ function M.start_treesitter(bufnr, source_bufnr)
 
   local language = filetype
 
-  if vim.treesitter.language and type(vim.treesitter.language.get_lang) == 'function' then
+  if
+    vim.treesitter.language
+    and type(vim.treesitter.language.get_lang) == 'function'
+  then
     language = vim.treesitter.language.get_lang(filetype) or filetype
   end
 
@@ -87,7 +94,7 @@ function M.line_hl(severity)
     return cached or nil
   end
 
-  local source_group = require('zdiag.config').get_line_highlight(severity)
+  local source_group = require('zdiag.core.config').get_line_highlight(severity)
   local target_group = line_highlight_groups[severity]
 
   if not source_group or not target_group then

@@ -22,7 +22,7 @@ local function ensure_highlight_autocmd()
     group = group,
 
     callback = function()
-      require('zdiag.highlight').refresh_line_highlights()
+      require('zdiag.core.highlight').refresh_line_highlights()
     end,
   })
 
@@ -68,7 +68,7 @@ function M.schedule_reload(workspace)
 
     workspace.reload_deferred = false
     require('zdiag.usecase').reload(workspace)
-  end, require('zdiag.config').get_auto_refresh_delay())
+  end, require('zdiag.core.config').get_auto_refresh_delay())
 end
 
 ---Create autocmds for the given workspace.
@@ -77,7 +77,8 @@ end
 function M.create_autocmd(workspace)
   ensure_highlight_autocmd()
 
-  local group = vim.api.nvim_create_augroup(group_name(workspace), { clear = true })
+  local group =
+    vim.api.nvim_create_augroup(group_name(workspace), { clear = true })
 
   vim.api.nvim_create_autocmd('BufWriteCmd', {
     group = group,
@@ -99,7 +100,10 @@ function M.create_autocmd(workspace)
       -- BufUnload runs while Neovim is still processing the original
       -- deletion.  Complete the wipe on the next event-loop turn.
       vim.schedule(function()
-        if vim.api.nvim_buf_is_valid(bufnr) and not vim.api.nvim_buf_is_loaded(bufnr) then
+        if
+          vim.api.nvim_buf_is_valid(bufnr)
+          and not vim.api.nvim_buf_is_loaded(bufnr)
+        then
           vim.api.nvim_buf_delete(bufnr, { force = false })
         end
 
@@ -117,7 +121,7 @@ function M.create_autocmd(workspace)
     end,
   })
 
-  if require('zdiag.config').is_auto_refresh_enabled() then
+  if require('zdiag.core.config').is_auto_refresh_enabled() then
     vim.api.nvim_create_autocmd('DiagnosticChanged', {
       group = group,
 

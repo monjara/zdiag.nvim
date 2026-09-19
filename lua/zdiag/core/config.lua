@@ -59,7 +59,11 @@ local function validate(opts)
 
   if
     opts.context_lines ~= nil
-    and (type(opts.context_lines) ~= 'number' or opts.context_lines < 0 or opts.context_lines % 1 ~= 0)
+    and (
+      type(opts.context_lines) ~= 'number'
+      or opts.context_lines < 0
+      or opts.context_lines % 1 ~= 0
+    )
   then
     error('zdiag: context_lines must be a non-negative integer')
   end
@@ -82,13 +86,19 @@ local function validate(opts)
 
   local auto_refresh = opts.auto_refresh or {}
 
-  if auto_refresh.enabled ~= nil and type(auto_refresh.enabled) ~= 'boolean' then
+  if
+    auto_refresh.enabled ~= nil and type(auto_refresh.enabled) ~= 'boolean'
+  then
     error('zdiag: auto_refresh.enabled must be a boolean')
   end
 
   if
     auto_refresh.delay ~= nil
-    and (type(auto_refresh.delay) ~= 'number' or auto_refresh.delay < 0 or auto_refresh.delay % 1 ~= 0)
+    and (
+      type(auto_refresh.delay) ~= 'number'
+      or auto_refresh.delay < 0
+      or auto_refresh.delay % 1 ~= 0
+    )
   then
     error('zdiag: auto_refresh.delay must be a non-negative integer')
   end
@@ -111,9 +121,13 @@ function M.setup(opts)
 
   options = vim.tbl_deep_extend('force', vim.deepcopy(defaults), opts)
 
-  options.line_highlight = vim.tbl_extend('force', vim.deepcopy(defaults.line_highlight), opts.line_highlight or {})
+  options.line_highlight = vim.tbl_extend(
+    'force',
+    vim.deepcopy(defaults.line_highlight),
+    opts.line_highlight or {}
+  )
 
-  local highlight = package.loaded['zdiag.highlight']
+  local highlight = package.loaded['zdiag.core.highlight']
 
   if highlight then
     highlight.invalidate_line_highlights()

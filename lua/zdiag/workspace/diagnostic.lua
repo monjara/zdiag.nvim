@@ -69,7 +69,10 @@ end
 ---@param opts vim.diagnostic.JumpOpts
 ---@return boolean
 local function matches_filters(diagnostic, opts)
-  if not matches_severity(diagnostic, opts.severity) or not matches_namespace(diagnostic, opts.namespace) then
+  if
+    not matches_severity(diagnostic, opts.severity)
+    or not matches_namespace(diagnostic, opts.namespace)
+  then
     return false
   end
 
@@ -102,7 +105,13 @@ local function collect(workspace, opts)
   local entries = {}
   local positions = {}
 
-  local extmarks = vim.api.nvim_buf_get_extmarks(workspace.bufnr, workspace.ctx.ns, 0, -1, { type = 'virt_text' })
+  local extmarks = vim.api.nvim_buf_get_extmarks(
+    workspace.bufnr,
+    workspace.ctx.ns,
+    0,
+    -1,
+    { type = 'virt_text' }
+  )
 
   for _, extmark in ipairs(extmarks) do
     positions[extmark[1]] = extmark
@@ -218,7 +227,11 @@ end
 local function open_float(workspace, opts, position, open_float_fn)
   if not position then
     local cursor = vim.api.nvim_win_get_cursor(0)
-    position = require('zdiag.workspace.source').get_position(workspace, cursor[1] - 1, cursor[2])
+    position = require('zdiag.workspace.source').get_position(
+      workspace,
+      cursor[1] - 1,
+      cursor[2]
+    )
   end
 
   if not position then
@@ -254,11 +267,15 @@ local function run_on_jump(workspace, winid, diagnostic, opts)
   local callback = opts.on_jump
 
   if opts.float then
-    local float_opts = type(opts.float) == 'table' and vim.deepcopy(opts.float) or {}
+    local float_opts = type(opts.float) == 'table' and vim.deepcopy(opts.float)
+      or {}
     local on_jump = callback
 
     callback = function(jumped, bufnr)
-      if vim.api.nvim_win_is_valid(winid) and vim.api.nvim_win_get_buf(winid) == workspace.bufnr then
+      if
+        vim.api.nvim_win_is_valid(winid)
+        and vim.api.nvim_win_get_buf(winid) == workspace.bufnr
+      then
         vim.api.nvim_win_call(winid, function()
           if float_opts.focus == nil then
             float_opts.focus = false
@@ -311,8 +328,13 @@ function M.jump(workspace, opts)
     winid = vim.api.nvim_get_current_win()
   end
 
-  if not vim.api.nvim_win_is_valid(winid) or vim.api.nvim_win_get_buf(winid) ~= workspace.bufnr then
-    error('zdiag: diagnostic jump window is not showing the diagnostics workspace')
+  if
+    not vim.api.nvim_win_is_valid(winid)
+    or vim.api.nvim_win_get_buf(winid) ~= workspace.bufnr
+  then
+    error(
+      'zdiag: diagnostic jump window is not showing the diagnostics workspace'
+    )
   end
 
   local entries = collect(workspace, opts.diagnostic and {} or opts)
@@ -332,7 +354,9 @@ function M.jump(workspace, opts)
       return nil
     end
 
-    local position = opts.pos or opts.cursor_position or vim.api.nvim_win_get_cursor(winid)
+    local position = opts.pos
+      or opts.cursor_position
+      or vim.api.nvim_win_get_cursor(winid)
     local row = position[1] - 1
     local col = position[2]
 

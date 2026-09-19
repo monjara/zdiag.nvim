@@ -23,7 +23,12 @@ function M.render(workspace)
     if not highlighted_buffers[block.bufnr] then
       highlighted_buffers[block.bufnr] = true
 
-      if require('zdiag.highlight').start_treesitter(workspace.bufnr, block.bufnr) then
+      if
+        require('zdiag.core.highlight').start_treesitter(
+          workspace.bufnr,
+          block.bufnr
+        )
+      then
         break
       end
     end

@@ -8,7 +8,7 @@ local active_workspace
 ---@param workspace zdiag.Workspace
 ---@return zdiag.Workspace
 local function build_workspace(workspace)
-  local buffers = require('zdiag.diagnostic').get_by_buffer()
+  local buffers = require('zdiag.core.diagnostic').get_by_buffer()
 
   workspace:build(buffers):render()
 
@@ -29,13 +29,21 @@ function M.reload(workspace)
   if winid ~= -1 then
     local cursor = vim.api.nvim_win_get_cursor(winid)
 
-    source_position = require('zdiag.workspace.source').get_position(workspace, cursor[1] - 1, cursor[2])
+    source_position = require('zdiag.workspace.source').get_position(
+      workspace,
+      cursor[1] - 1,
+      cursor[2]
+    )
   end
 
   workspace:reset()
   build_workspace(workspace)
 
-  if winid == -1 or not vim.api.nvim_win_is_valid(winid) or not source_position then
+  if
+    winid == -1
+    or not vim.api.nvim_win_is_valid(winid)
+    or not source_position
+  then
     return
   end
 
@@ -86,7 +94,7 @@ function M.open()
     active_workspace = nil
   end
 
-  local Context = require('zdiag.context')
+  local Context = require('zdiag.core.context')
   local ctx = Context:new()
 
   local Workspace = require('zdiag.workspace')
@@ -142,7 +150,10 @@ function M.close(opts)
   local force = opts.force or false
 
   if vim.bo[workspace.bufnr].modified and not force then
-    vim.notify('zdiag: write or discard workspace changes before closing', vim.log.levels.WARN)
+    vim.notify(
+      'zdiag: write or discard workspace changes before closing',
+      vim.log.levels.WARN
+    )
     return false
   end
 

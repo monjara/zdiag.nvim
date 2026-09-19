@@ -27,17 +27,24 @@ end
 ---@param opts? zdiag.JumpOpts
 function M.jump_to_source(workspace, opts)
   local cursor = vim.api.nvim_win_get_cursor(0)
-  local position = require('zdiag.workspace.source').get_position(workspace, cursor[1] - 1, cursor[2])
+  local position = require('zdiag.workspace.source').get_position(
+    workspace,
+    cursor[1] - 1,
+    cursor[2]
+  )
 
   if not position then
     vim.notify('zdiag: cursor is not on a source line', vim.log.levels.INFO)
     return
   end
 
-  local mode = require('zdiag.config').get_jump_mode(opts)
+  local mode = require('zdiag.core.config').get_jump_mode(opts)
 
   if mode == 'close' and vim.bo[workspace.bufnr].modified then
-    vim.notify('zdiag: write or discard workspace changes before a close-mode jump', vim.log.levels.WARN)
+    vim.notify(
+      'zdiag: write or discard workspace changes before a close-mode jump',
+      vim.log.levels.WARN
+    )
     return
   end
 

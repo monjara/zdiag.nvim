@@ -48,10 +48,15 @@ function M.get_position(workspace, row, col)
     return nil
   end
 
-  require('zdiag.buffer').ensure_loaded(block.bufnr)
+  require('zdiag.utils.buffer').ensure_loaded(block.bufnr)
 
   local source_row = block.source_start + offset
-  local source_line = vim.api.nvim_buf_get_lines(block.bufnr, source_row, source_row + 1, false)[1] or ''
+  local source_line = vim.api.nvim_buf_get_lines(
+    block.bufnr,
+    source_row,
+    source_row + 1,
+    false
+  )[1] or ''
 
   return {
     bufnr = block.bufnr,
@@ -81,11 +86,19 @@ local function get_selection(workspace, mode)
 
   local cursor = vim.api.nvim_win_get_cursor(0)
   local anchor = vim.fn.getpos('v')
-  local anchor_position = M.get_position(workspace, anchor[2] - 1, anchor[3] - 1)
+  local anchor_position =
+    M.get_position(workspace, anchor[2] - 1, anchor[3] - 1)
   local cursor_position = M.get_position(workspace, cursor[1] - 1, cursor[2])
 
-  if not anchor_position or not cursor_position or anchor_position.block ~= cursor_position.block then
-    vim.notify('zdiag: selection must stay within one source block', vim.log.levels.INFO)
+  if
+    not anchor_position
+    or not cursor_position
+    or anchor_position.block ~= cursor_position.block
+  then
+    vim.notify(
+      'zdiag: selection must stay within one source block',
+      vim.log.levels.INFO
+    )
     return nil
   end
 
@@ -135,7 +148,11 @@ local function call_with_workspace_apis(workspace, workspace_winid, callback)
 
     if
       type(jump_opts) == 'table'
-      and (jump_opts.winid == 0 or jump_opts.winid == nil and (jump_opts.win_id == nil or jump_opts.win_id == 0))
+      and (
+        jump_opts.winid == 0
+        or jump_opts.winid == nil
+          and (jump_opts.win_id == nil or jump_opts.win_id == 0)
+      )
     then
       jump_opts.winid = workspace_winid
       jump_opts.win_id = nil
@@ -150,13 +167,19 @@ local function call_with_workspace_apis(workspace, workspace_winid, callback)
     end
 
     return vim.api.nvim_win_call(workspace_winid, function()
-      return require('zdiag.workspace.diagnostic').open_float(workspace, opts, original_open_float)
+      return require('zdiag.workspace.diagnostic').open_float(
+        workspace,
+        opts,
+        original_open_float
+      )
     end)
   end
 
   -- A function passed directly was resolved before the adapter above was
   -- installed. Use the adapter for that common mapping form as well.
-  local adapted_callback = callback == original_open_float and vim.diagnostic.open_float or callback
+  local adapted_callback = callback == original_open_float
+      and vim.diagnostic.open_float
+    or callback
   local ok, result = xpcall(adapted_callback, debug.traceback)
   vim.diagnostic.jump = original_jump
   vim.diagnostic.open_float = original_open_float
@@ -198,12 +221,18 @@ function M.call(workspace, callback)
 
       local ok, callback_result = xpcall(function()
         if selection then
-          set_selection(winid, selection.mode, selection.anchor, selection.cursor)
+          set_selection(
+            winid,
+            selection.mode,
+            selection.anchor,
+            selection.cursor
+          )
         else
           vim.api.nvim_win_set_cursor(winid, { position.row + 1, position.col })
         end
 
-        local ok, callback_result = call_with_workspace_apis(workspace, workspace_winid, callback)
+        local ok, callback_result =
+          call_with_workspace_apis(workspace, workspace_winid, callback)
 
         if not ok then
           error(callback_result, 0)
@@ -212,7 +241,10 @@ function M.call(workspace, callback)
         return callback_result
       end, debug.traceback)
 
-      if vim.api.nvim_win_is_valid(winid) and vim.api.nvim_win_get_buf(winid) == position.bufnr then
+      if
+        vim.api.nvim_win_is_valid(winid)
+        and vim.api.nvim_win_get_buf(winid) == position.bufnr
+      then
         stop_visual()
         vim.api.nvim_win_set_cursor(winid, previous_cursor)
       end
@@ -234,7 +266,12 @@ function M.call(workspace, callback)
     and vim.api.nvim_win_get_buf(workspace_winid) == workspace.bufnr
   then
     stop_visual()
-    set_selection(workspace_winid, selection.mode, selection.workspace_anchor, selection.workspace_cursor)
+    set_selection(
+      workspace_winid,
+      selection.mode,
+      selection.workspace_anchor,
+      selection.workspace_cursor
+    )
   end
 
   if not call_ok then

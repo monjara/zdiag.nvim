@@ -54,7 +54,7 @@ end
 ---
 ---@return zdiag.BufferDiagnostics[]
 function M.get_by_buffer()
-  local severity = require('zdiag.config').get_diagnostic_severity()
+  local severity = require('zdiag.core.config').get_diagnostic_severity()
   local diagnostics = vim.diagnostic.get(nil, {
     severity = severity,
   })
