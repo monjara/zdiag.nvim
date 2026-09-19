@@ -6,8 +6,8 @@ local M = {}
 ---@param source_line string
 ---@param diagnostics vim.Diagnostic[]
 local function append_source_line(workspace, source_line, diagnostics)
-  local Decoration = require('zdiag.workspace.decoration')
-  local LineHighlight = require('zdiag.workspace.line_highlight')
+  local Decoration = require('zdiag.workspace.presentation.decoration')
+  local LineHighlight = require('zdiag.workspace.presentation.line_highlight')
 
   table.insert(workspace.lines, source_line)
 
@@ -102,8 +102,8 @@ end
 ---@param buffer zdiag.BufferDiagnostics
 local function append_buffer(workspace, buffer)
   local Diagnostic = require('zdiag.core.diagnostic')
-  local Header = require('zdiag.workspace.header')
-  local Separator = require('zdiag.workspace.separator')
+  local Header = require('zdiag.workspace.presentation.header')
+  local Separator = require('zdiag.workspace.presentation.separator')
   local bufnr = buffer.bufnr
 
   require('zdiag.utils.buffer').ensure_loaded(bufnr)

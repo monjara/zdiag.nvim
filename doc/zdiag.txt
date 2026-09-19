@@ -160,7 +160,8 @@ Use another highlight group name to customize a severity.  Set a severity to
 
 OPENING AND CLOSING				*zdiag-opening-and-closing*
 
-Use |zdiag.open()| to build the workspace from the current Neovim diagnostics.
+Use |zdiag.open()| to open or rebuild the workspace from the current Neovim
+diagnostics.
 Use |zdiag.close()| to close it.  Closing fails when the workspace has unsaved
 changes unless `{ force = true }` is supplied.
 
@@ -174,16 +175,16 @@ Each changed block is copied back to its source buffer and named source
 buffers are written to disk.  File headers and diagnostic messages are not
 part of the editable source blocks.
 
-After diagnostics change, an unmodified workspace is rebuilt automatically.
-Unsaved changes in the workspace are not overwritten by an automatic rebuild.
+After workspace edits are written, a rebuild is scheduled using
+`auto_refresh.delay`.  |DiagnosticChanged| also schedules a rebuild when
+`auto_refresh.enabled` is true.  Unsaved workspace changes are not overwritten
+by an automatic rebuild.
 
 SOURCE OPERATIONS				*zdiag-source-operations*
 
 Operations such as hover, definitions, rename, code actions, and diagnostic
 navigation must run in the source context represented by the current
 workspace line.  |zdiag.call()| provides that context for custom mappings.
-zdiag also provides compatibility helpers for code actions and diagnostic
-floats.
 
 ==============================================================================
 4. Lua API						*zdiag-api*
@@ -199,19 +200,18 @@ setup({opts})						*zdiag.setup()*
 	Configure zdiag.  See |zdiag-setup|.  `{opts}` is optional.
 
 open()							*zdiag.open()*
-	Open a newly built diagnostics workspace containing diagnostics from all
-	buffers.
+	Open the diagnostics workspace containing diagnostics from all buffers.
+	An existing unmodified workspace is rebuilt; an existing workspace with
+	unsaved changes is reopened without replacing those changes.
 
 jump_to_source({opts})				*zdiag.jump_to_source()*
 	Jump from the current source line in the diagnostics workspace to its source
 	buffer using the behavior configured by `jump.mode`.  `{opts}.mode` may be
 	`"close"`, `"split"`, or `"buffer"` to override the configured mode for
-	one jump.  Returns `true` when invoked in the active diagnostics workspace and
-	`false` otherwise.
+	one jump.  No value is returned.
 
 close({opts})						*zdiag.close()*
-	Close the active diagnostics workspace.  Returns `true` when a workspace was
-	closed and `false` when there was no valid active workspace.
+	Close the active diagnostics workspace.  No value is returned.
 
 	Options: ~
 	  {force}  (`boolean`, default `false`) Discard unsaved workspace changes.
@@ -249,28 +249,6 @@ call({callback})					*zdiag.call()*
   end)
 <
 
-code_action({opts})					*zdiag.code_action()*
-	Request LSP code actions for the represented source position.  Visual
-	selections must remain within one source block.  `{opts}` accepts the
-	options supported by |vim.lsp.buf.code_action()|.
-
-	Outside the diagnostics workspace, this delegates directly to
-	|vim.lsp.buf.code_action()|.
-
-diagnostic_open_float({opts})			*zdiag.diagnostic_open_float()*
-	Open diagnostic messages for the represented source position.  The
-	default scope inside the workspace is `"line"`; pass `{ scope = "cursor" }`
-	to limit results to the cursor position.  `{opts}` accepts the options
-	supported by |vim.diagnostic.open_float()|.
-
-	Outside the diagnostics workspace, this delegates directly to
-	|vim.diagnostic.open_float()|.
-
-							*:ZdiagCodeAction*
-:ZdiagCodeAction
-	Request a code action for the source position under the cursor.  This
-	buffer-local command exists only in the diagnostics workspace.
-
 ==============================================================================
 5. Mappings						*zdiag-mappings*
 
@@ -295,7 +273,7 @@ Source operations can instead use one global mapping in both ordinary source
 buffers and the diagnostics workspace.  For example:
 >
   vim.keymap.set({ "n", "x" }, "gra", function()
-    require("zdiag").code_action()
+    require("zdiag").call(vim.lsp.buf.code_action)
   end)
 <
 
