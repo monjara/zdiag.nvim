@@ -45,8 +45,8 @@ end
 function Workspace:build()
   local buffers = require('zdiag.core.diagnostic').get_by_buffer()
 
-  require('zdiag.workspace.builder').build(self, buffers)
-  require('zdiag.workspace.renderer').render(self)
+  require('zdiag.workspace.presentation.builder').build(self, buffers)
+  require('zdiag.workspace.presentation.renderer').render(self)
 
   return self
 end
@@ -55,8 +55,8 @@ end
 ---
 ---@return zdiag.Workspace
 function Workspace:reset()
-  require('zdiag.workspace.renderer').clear(self)
-  require('zdiag.workspace.builder').clear(self)
+  require('zdiag.workspace.presentation.renderer').clear(self)
+  require('zdiag.workspace.presentation.builder').clear(self)
 
   return self
 end

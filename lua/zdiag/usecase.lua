@@ -55,7 +55,10 @@ function M.jump_to_source(opts)
     return
   end
 
-  require('zdiag.workspace.jump').jump_to_source(active_workspace, opts)
+  require('zdiag.workspace.interaction.jump').jump_to_source(
+    active_workspace,
+    opts
+  )
 
   if not vim.api.nvim_buf_is_valid(active_workspace.bufnr) then
     active_workspace = nil
@@ -104,8 +107,10 @@ function M.call(callback)
     and vim.api.nvim_buf_is_valid(active_workspace.bufnr)
     and vim.api.nvim_get_current_buf() == active_workspace.bufnr
   then
-    local _, result =
-      require('zdiag.workspace.source').call(active_workspace, callback)
+    local _, result = require('zdiag.workspace.interaction.source').call(
+      active_workspace,
+      callback
+    )
     return result
   end
 

@@ -107,7 +107,10 @@ local function call_with_workspace_apis(workspace, workspace_winid, callback)
       jump_opts.win_id = nil
     end
 
-    return require('zdiag.workspace.diagnostic').jump(workspace, jump_opts)
+    return require('zdiag.workspace.interaction.diagnostic').jump(
+      workspace,
+      jump_opts
+    )
   end
 
   vim.diagnostic.open_float = function(opts, ...)
@@ -116,7 +119,7 @@ local function call_with_workspace_apis(workspace, workspace_winid, callback)
     end
 
     return vim.api.nvim_win_call(workspace_winid, function()
-      return require('zdiag.workspace.diagnostic').open_float(
+      return require('zdiag.workspace.interaction.diagnostic').open_float(
         workspace,
         opts,
         original_open_float

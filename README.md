@@ -5,6 +5,8 @@
 - [Source code guide](doc/source-code-guide.md)
 - [Neovim plugin beginner's guide](doc/neovim-plugin-beginners-guide.md)
 - [Neovim API reference used by zdiag.nvim](doc/neovim-api-reference.md)
+- [Current Lua dependency graph](20260919-130419.md)
+- [Refactoring status and design decisions](refactor.md)
 
 ## Installation
 
@@ -105,17 +107,13 @@ end)
 ```
 
 Visual selections must stay within one source block. To pass options, wrap the
-call; `require("zdiag").code_action(opts)` remains available for compatibility
-and for mapping blockwise Visual selections.
+call:
 
 ```lua
 require("zdiag").call(function()
   vim.lsp.buf.code_action(opts)
 end)
 ```
-
-Code actions can also be requested with `:ZdiagCodeAction` in the diagnostics
-workspace.
 
 Diagnostic lines derive only their background from the colorscheme's standard
 `DiagnosticVirtualText*` highlight groups. Their foreground remains untouched
@@ -153,8 +151,7 @@ end)
 Outside a zdiag workspace, `call` runs the callback against the current
 buffer normally, so the same mapping can be used globally.
 
-zdiag does not install any keymaps. workspace-only mappings can be configured with
-a `FileType` autocmd:
+Workspace-only mappings can be configured with a `FileType` autocmd:
 
 ```lua
 vim.api.nvim_create_autocmd("FileType", {
@@ -176,8 +173,7 @@ previous source buffer instead of stopping at a file boundary.
 `call(vim.diagnostic.open_float)` shows the diagnostic float for the source
 buffer represented by the current block.
 Diagnostics on the same source line are grouped into one float by default.
-Options can be passed with a closure; `diagnostic_open_float(opts)` remains
-available as a convenience wrapper.
+Options can be passed with a closure.
 
 ```lua
 require("zdiag").call(function()
@@ -191,5 +187,6 @@ end)
 The active diagnostics workspace can be closed with `require("zdiag").close()`;
 unsaved edits are protected unless `{ force = true }` is passed.
 
-After edits are written and LSP diagnostics change, the diagnostics workspace is
-rebuilt automatically. Unsaved changes in the workspace are never overwritten.
+After workspace edits are written, a rebuild is scheduled using
+`auto_refresh.delay`. `DiagnosticChanged` also schedules a rebuild when
+`auto_refresh.enabled` is true. Unsaved workspace changes are never overwritten.
