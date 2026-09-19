@@ -10,16 +10,12 @@
 ---@field reload_pending boolean?
 ---@field reload_deferred boolean?
 ---@field closed boolean?
----@field jump fun(self: zdiag.Workspace, opts?: zdiag.JumpOpts): nil
----@field build fun(self: zdiag.Workspace, buffers: zdiag.BufferDiagnostics[]): zdiag.Workspace
----@field render fun(self: zdiag.Workspace): zdiag.Workspace
+---@field build fun(self: zdiag.Workspace): zdiag.Workspace
 ---@field reset fun(self: zdiag.Workspace): zdiag.Workspace
 ---@field mark_unmodified fun(self: zdiag.Workspace): nil
 ---@field dispose fun(self: zdiag.Workspace, opts?: { force?: boolean }): nil
----@field call fun(self: zdiag.Workspace, callback: fun()): boolean, any
 ---@field new fun(self: zdiag.Workspace, ctx: zdiag.Context): zdiag.Workspace
 ---@field reload fun(self: zdiag.Workspace): nil
----@field build_workspace fun(self: zdiag.Workspace): zdiag.Workspace
 
 local Workspace = {}
 Workspace.__index = Workspace
@@ -43,19 +39,16 @@ function Workspace:new(ctx)
   }, self)
 end
 
----Build the workspace from diagnostics grouped by source buffer.
+---Build and render the workspace from the current diagnostics.
 ---
----@param buffers zdiag.BufferDiagnostics[]
 ---@return zdiag.Workspace
-function Workspace:build(buffers)
-  return require('zdiag.workspace.builder').build(self, buffers)
-end
+function Workspace:build()
+  local buffers = require('zdiag.core.diagnostic').get_by_buffer()
 
----Render the workspace.
----
----@return zdiag.Workspace
-function Workspace:render()
-  return require('zdiag.workspace.renderer').render(self)
+  require('zdiag.workspace.builder').build(self, buffers)
+  require('zdiag.workspace.renderer').render(self)
+
+  return self
 end
 
 ---Reset rendered state before rebuilding the workspace.
@@ -98,33 +91,6 @@ function Workspace:dispose(opts)
   require('zdiag.workspace.autocmd').remove_autocmd(self)
 end
 
----Jump to the source of the diagnostic under the cursor.
----
----@param opts? zdiag.JumpOpts
-function Workspace:jump(opts)
-  require('zdiag.workspace.jump').jump_to_source(self, opts)
-end
-
----Call a callback in the source context represented by the cursor or Visual selection.
----
----@param callback fun(): any
----@return boolean executed
----@return any result
-function Workspace:call(callback)
-  return require('zdiag.workspace.source').call(self, callback)
-end
-
----Build the current diagnostic data into a workspace.
----
----@return zdiag.Workspace
-function Workspace:build_workspace()
-  local buffers = require('zdiag.core.diagnostic').get_by_buffer()
-
-  self:build(buffers):render()
-
-  return self
-end
-
 ---Reload a workspace from the latest diagnostics.
 ---
 function Workspace:reload()
@@ -146,7 +112,7 @@ function Workspace:reload()
   end
 
   self:reset()
-  self:build_workspace()
+  self:build()
 
   if
     winid == -1

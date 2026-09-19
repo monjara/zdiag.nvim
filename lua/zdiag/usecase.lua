@@ -35,7 +35,7 @@ function M.open()
   local ctx = Context:new()
 
   local Workspace = require('zdiag.workspace')
-  local workspace = Workspace:new(ctx):build_workspace()
+  local workspace = Workspace:new(ctx):build()
   require('zdiag.workspace.autocmd').create_autocmd(workspace)
   active_workspace = workspace
 
@@ -57,7 +57,7 @@ function M.jump_to_source(opts)
   end
 
   local workspace = active_workspace
-  workspace:jump(opts)
+  require('zdiag.workspace.jump').jump_to_source(workspace, opts)
 
   if not vim.api.nvim_buf_is_valid(workspace.bufnr) then
     active_workspace = nil
@@ -113,7 +113,8 @@ function M.call(callback)
     and vim.api.nvim_buf_is_valid(active_workspace.bufnr)
     and vim.api.nvim_get_current_buf() == active_workspace.bufnr
   then
-    local _, result = active_workspace:call(callback)
+    local _, result =
+      require('zdiag.workspace.source').call(active_workspace, callback)
     return result
   end
 
