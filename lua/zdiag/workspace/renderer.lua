@@ -1,18 +1,11 @@
 local M = {}
 
----Write the workspace's lines to its buffer.
----
----@param workspace zdiag.Workspace
-local function write_lines(workspace)
-  vim.api.nvim_buf_set_lines(workspace.bufnr, 0, -1, false, workspace.lines)
-end
-
 ---Render a workspace's in-memory representation into its Neovim buffer.
 ---
 ---@param workspace zdiag.Workspace
 ---@return zdiag.Workspace
 function M.render(workspace)
-  write_lines(workspace)
+  vim.api.nvim_buf_set_lines(workspace.bufnr, 0, -1, false, workspace.lines)
 
   local highlighted_buffers = {}
 
@@ -54,7 +47,6 @@ function M.render(workspace)
     decoration:apply(workspace)
   end
 
-  require('zdiag.workspace.autocmd').create_autocmd(workspace)
   workspace:mark_unmodified()
 
   return workspace

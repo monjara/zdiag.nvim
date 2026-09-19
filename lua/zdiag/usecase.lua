@@ -27,7 +27,7 @@ function M.open()
   end
 
   if active_workspace then
-    require('zdiag.workspace.autocmd').remove_autocmd(active_workspace)
+    active_workspace:dispose()
     active_workspace = nil
   end
 
@@ -36,6 +36,7 @@ function M.open()
 
   local Workspace = require('zdiag.workspace')
   local workspace = Workspace:new(ctx):build_workspace()
+  require('zdiag.workspace.autocmd').create_autocmd(workspace)
   active_workspace = workspace
 
   vim.api.nvim_set_current_buf(workspace.bufnr)
@@ -79,8 +80,8 @@ function M.close(opts)
   local workspace = active_workspace
 
   if not vim.api.nvim_buf_is_valid(workspace.bufnr) then
+    workspace:dispose()
     active_workspace = nil
-    require('zdiag.workspace.autocmd').remove_autocmd(workspace)
     return false
   end
 
@@ -94,13 +95,8 @@ function M.close(opts)
     return false
   end
 
-  vim.api.nvim_buf_delete(workspace.bufnr, { force = force })
-
-  require('zdiag.workspace.autocmd').remove_autocmd(workspace)
-
-  if active_workspace == workspace then
-    active_workspace = nil
-  end
+  workspace:dispose { force = force }
+  active_workspace = nil
 
   return true
 end

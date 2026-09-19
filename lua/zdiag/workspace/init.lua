@@ -15,6 +15,7 @@
 ---@field render fun(self: zdiag.Workspace): zdiag.Workspace
 ---@field reset fun(self: zdiag.Workspace): zdiag.Workspace
 ---@field mark_unmodified fun(self: zdiag.Workspace): nil
+---@field dispose fun(self: zdiag.Workspace, opts?: { force?: boolean }): nil
 ---@field call fun(self: zdiag.Workspace, callback: fun()): boolean, any
 ---@field new fun(self: zdiag.Workspace, ctx: zdiag.Context): zdiag.Workspace
 ---@field reload fun(self: zdiag.Workspace): nil
@@ -69,7 +70,32 @@ end
 
 ---Clear the modified flag on the workspace buffer.
 function Workspace:mark_unmodified()
-  require('zdiag.utils.buffer').mark_modified(self.bufnr)
+  vim.bo[self.bufnr].modified = false
+end
+
+---Dispose of the workspace buffer and its autocmds.
+---
+---@param opts? { force?: boolean }
+function Workspace:dispose(opts)
+  if self.closed then
+    return
+  end
+
+  opts = opts or {}
+  self.closed = true
+
+  if vim.api.nvim_buf_is_valid(self.bufnr) then
+    local ok, err = pcall(vim.api.nvim_buf_delete, self.bufnr, {
+      force = opts.force or false,
+    })
+
+    if not ok then
+      self.closed = false
+      error(err, 0)
+    end
+  end
+
+  require('zdiag.workspace.autocmd').remove_autocmd(self)
 end
 
 ---Jump to the source of the diagnostic under the cursor.

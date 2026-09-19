@@ -150,12 +150,16 @@ function M.call(workspace, callback)
     return false, nil
   end
 
-  local cursor = vim.api.nvim_win_get_cursor(0)
-  local position = require('zdiag.workspace.position').get_position(
-    workspace,
-    cursor[1] - 1,
-    cursor[2]
-  )
+  local position = selection and selection.cursor
+
+  if not position then
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    position = require('zdiag.workspace.position').get_position(
+      workspace,
+      cursor[1] - 1,
+      cursor[2]
+    )
+  end
 
   if not position then
     vim.notify('zdiag: cursor is not on a source line', vim.log.levels.INFO)
