@@ -120,7 +120,7 @@ function Workspace:reload()
   end
 
   self:reset()
-  build_workspace(self)
+  self:build_workspace()
 
   if
     winid == -1
