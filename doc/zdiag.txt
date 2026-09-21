@@ -29,6 +29,12 @@ dotted line.  The separator is not written into source files.
 ==============================================================================
 2. Setup						*zdiag-setup*
 
+REQUIREMENTS
+
+zdiag requires Neovim 0.11 or later and diagnostics produced by an LSP client,
+linter, or another diagnostic provider.  Tree-sitter parsers are optional and
+are used for source highlighting when available.
+
 LAZY.NVIM
 
 Use the |:Zdiag| command as a lazy-loading entry point:
@@ -60,8 +66,18 @@ Add zdiag, configure it, and map the same command:
   })
 <
 
-Without a plugin manager, call |zdiag.setup()| and map |zdiag.open()| from
-your configuration:
+NATIVE PACKAGES
+
+Without a plugin manager, first run `:echo stdpath('data')` to find Neovim's
+data directory.  Create its `site/pack/zdiag/start` subdirectory, then clone
+zdiag into the native package directory:
+>
+  git clone https://github.com/monjara/zdiag.nvim \
+    "{data-dir}/site/pack/zdiag/start/zdiag.nvim"
+<
+Restart Neovim, then run `:helptags ALL`.  Neovim loads packages under
+`pack/*/start` automatically.  Call |zdiag.setup()| and map |zdiag.open()|
+from your configuration if desired:
 >
   require("zdiag").setup()
 
@@ -238,9 +254,9 @@ call({callback})					*zdiag.call()*
 	provided by `call()`.  Navigation follows the order displayed in the
 	workspace and continues across source-buffer boundaries:
 >
-  vim.keymap.set("n", "g]", function()
+  vim.keymap.set("n", "]d", function()
     return require("zdiag").call(function()
-      vim.diagnostic.jump({ count = -1, float = true })
+      vim.diagnostic.jump({ count = 1, float = true })
     end)
   end)
 
@@ -248,6 +264,9 @@ call({callback})					*zdiag.call()*
     return require("zdiag").call(vim.diagnostic.open_float)
   end)
 <
+	By default, |vim.diagnostic.open_float()| groups all diagnostics on the
+	represented source line into one float.  Pass options with a closure when
+	different behavior is needed.
 
 ==============================================================================
 5. Mappings						*zdiag-mappings*

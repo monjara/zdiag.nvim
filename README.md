@@ -1,12 +1,23 @@
 # zdiag.nvim
 
-## Documentation
+An editable, multi-buffer diagnostics workspace for Neovim.
 
-- [Source code guide](doc/source-code-guide.md)
-- [Neovim plugin beginner's guide](doc/neovim-plugin-beginners-guide.md)
-- [Neovim API reference used by zdiag.nvim](doc/neovim-api-reference.md)
-- [Current Lua dependency graph](20260919-130419.md)
-- [Refactoring status and design decisions](refactor.md)
+## Features
+
+- View diagnostics from all buffers with their surrounding source lines.
+- Edit source lines in one workspace and write the changes back to the original
+  files.
+- Keep file headers and diagnostic messages outside the editable text.
+- Use Tree-sitter highlighting when a parser for the source language is
+  available.
+- Run source-aware LSP and diagnostic operations directly from the workspace.
+- Refresh automatically without overwriting unsaved workspace changes.
+
+## Requirements
+
+- Neovim >= 0.11
+- A configured diagnostic provider, such as an LSP client or linter
+- Tree-sitter parsers are optional
 
 ## Installation
 
@@ -31,127 +42,18 @@ With [mini.deps](https://github.com/nvim-mini/mini.nvim/blob/main/readmes/mini-d
 
 ```lua
 MiniDeps.add({ source = "monjara/zdiag.nvim" })
-
 require("zdiag").setup()
-
-vim.keymap.set("n", "<leader>e", "<cmd>Zdiag<cr>", {
-  desc = "Open diagnostics workspace",
-})
 ```
 
-`setup()` is optional when the default configuration is sufficient. You can
-also open the workspace directly with `require("zdiag").open()`.
+`setup()` is optional when the default configuration is sufficient.
 
-## Configuration
+## Usage
 
-```lua
-require("zdiag").setup({
-  -- Source lines displayed before and after each diagnostic.
-  context_lines = 2,
+Run `:Zdiag` to open the workspace. Edit its source lines and use `:write` to
+apply the changes to the original files.
 
-  diagnostics = {
-    -- Accepts the same severity filter as vim.diagnostic.get().
-    severity = nil,
-  },
-
-  auto_refresh = {
-    -- Rebuild an unmodified workspace after DiagnosticChanged.
-    enabled = true,
-    delay = 100,
-  },
-
-  jump = {
-    -- "close", "split", or "buffer".
-    mode = "split",
-  },
-
-  line_highlight = {
-    [vim.diagnostic.severity.ERROR] = "DiagnosticVirtualTextError",
-    [vim.diagnostic.severity.WARN] = "DiagnosticVirtualTextWarn",
-    [vim.diagnostic.severity.INFO] = "DiagnosticVirtualTextInfo",
-    [vim.diagnostic.severity.HINT] = "DiagnosticVirtualTextHint",
-  },
-})
-```
-
-`jump.mode` controls how `jump_to_source()` opens the source:
-
-- `"close"` closes the zdiag buffer and uses the current window.
-- `"split"` keeps zdiag open and creates a split for the source.
-- `"buffer"` keeps zdiag loaded and switches the current window to the source.
-
-Close mode refuses to discard unsaved changes in the zdiag buffer.
-Pass the same option directly to override the configured mode for one jump:
-
-```lua
-require("zdiag").jump_to_source({ mode = "buffer" })
-```
-
-zdiag does not define keymaps through its configuration. Configure global
-maps through your plugin manager or Neovim config, and use a `FileType zdiag`
-autocmd for workspace-local maps.
-
-Separate source blocks from the same buffer are divided by a display-only
-dotted line. The separator uses the `ZdiagSeparator` highlight group, which
-links to `NonText` by default.
-
-The diagnostics workspace starts Tree-sitter highlighting when a parser for the
-source language is available. `call()` translates both Normal-mode cursor
-positions and Visual selections to the underlying source context, so the same
-mapping works in source buffers and the diagnostics workspace:
-
-```lua
-vim.keymap.set({ "n", "x" }, "gra", function()
-  require("zdiag").call(vim.lsp.buf.code_action)
-end)
-```
-
-Visual selections must stay within one source block. To pass options, wrap the
-call:
-
-```lua
-require("zdiag").call(function()
-  vim.lsp.buf.code_action(opts)
-end)
-```
-
-Diagnostic lines derive only their background from the colorscheme's standard
-`DiagnosticVirtualText*` highlight groups. Their foreground remains untouched
-so Tree-sitter syntax colors take priority. The background continues beneath
-the diagnostic message to the right edge of the window. Override the source
-group name, or disable a severity with `false`, without defining colors in
-zdiag:
-
-```lua
-require("zdiag").setup({
-  line_highlight = {
-    [vim.diagnostic.severity.ERROR] = "MyDiagnosticLineError",
-    [vim.diagnostic.severity.HINT] = false,
-  },
-})
-```
-
-zdiag does not detect or copy existing keymaps. Buffer-local operations can be
-mapped explicitly with `call`:
-
-```lua
-vim.keymap.set("n", "K", function()
-  require("zdiag").call(vim.lsp.buf.hover)
-end)
-
-vim.keymap.set("n", "gd", function()
-  require("zdiag").call(vim.lsp.buf.definition)
-end)
-
-vim.keymap.set("n", "gl", function()
-  require("zdiag").call(vim.diagnostic.open_float)
-end)
-```
-
-Outside a zdiag workspace, `call` runs the callback against the current
-buffer normally, so the same mapping can be used globally.
-
-Workspace-only mappings can be configured with a `FileType` autocmd:
+zdiag does not define keymaps. Workspace-local mappings can be added with a
+`FileType` autocmd:
 
 ```lua
 vim.api.nvim_create_autocmd("FileType", {
@@ -168,25 +70,49 @@ vim.api.nvim_create_autocmd("FileType", {
 })
 ```
 
-`vim.diagnostic.jump()` called inside `call()` continues into the next or
-previous source buffer instead of stopping at a file boundary.
-`call(vim.diagnostic.open_float)` shows the diagnostic float for the source
-buffer represented by the current block.
-Diagnostics on the same source line are grouped into one float by default.
-Options can be passed with a closure.
+Use `call()` to run an operation against the source location represented by the
+current workspace line. The same mapping also works in ordinary source buffers:
 
 ```lua
-require("zdiag").call(function()
-  vim.diagnostic.jump({ count = -1, float = true })
+vim.keymap.set({ "n", "x" }, "gra", function()
+  require("zdiag").call(vim.lsp.buf.code_action)
 end)
 
-require("zdiag").call(function()
-  vim.diagnostic.open_float({ scope = "cursor" })
+vim.keymap.set("n", "gl", function()
+  require("zdiag").call(vim.diagnostic.open_float)
 end)
 ```
-The active diagnostics workspace can be closed with `require("zdiag").close()`;
-unsaved edits are protected unless `{ force = true }` is passed.
 
-After workspace edits are written, a rebuild is scheduled using
-`auto_refresh.delay`. `DiagnosticChanged` also schedules a rebuild when
-`auto_refresh.enabled` is true. Unsaved workspace changes are never overwritten.
+Visual selections must stay within one source block. Diagnostic navigation
+through `call()` continues across source-buffer boundaries, and diagnostics on
+the same source line are grouped into one float.
+
+## Configuration
+
+```lua
+require("zdiag").setup({
+  context_lines = 2,
+  diagnostics = {
+    severity = nil,
+  },
+  auto_refresh = {
+    enabled = true,
+    delay = 100,
+  },
+  jump = {
+    -- "close", "split", or "buffer"
+    mode = "split",
+  },
+  line_highlight = {
+    [vim.diagnostic.severity.ERROR] = "DiagnosticVirtualTextError",
+    [vim.diagnostic.severity.WARN] = "DiagnosticVirtualTextWarn",
+    [vim.diagnostic.severity.INFO] = "DiagnosticVirtualTextInfo",
+    [vim.diagnostic.severity.HINT] = "DiagnosticVirtualTextHint",
+  },
+})
+```
+
+Set a `line_highlight` severity to `false` to disable its whole-line
+background.
+
+See [`:help zdiag`](doc/zdiag.txt) for all options, mappings, and Lua APIs.
