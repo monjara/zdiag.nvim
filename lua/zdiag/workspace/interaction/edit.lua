@@ -48,6 +48,53 @@ local function collect_edits(workspace)
   return edits
 end
 
+---Return a readable source-buffer label for an error message.
+---
+---@param bufnr integer
+---@return string
+local function buffer_label(bufnr)
+  local name = vim.api.nvim_buf_get_name(bufnr)
+  return name ~= '' and name or ('buffer ' .. bufnr)
+end
+
+---Refuse to apply a workspace edit when its source range has changed since the
+---workspace was rendered.  Applying the saved range after an external edit
+---could overwrite or duplicate unrelated source lines.
+---
+---@param edits { block: zdiag.Block, bufnr: integer, source_start: integer, source_end: integer, lines: string[] }[]
+---@return boolean
+local function source_ranges_are_current(edits)
+  for _, edit in ipairs(edits) do
+    if not vim.api.nvim_buf_is_valid(edit.bufnr) then
+      vim.notify(
+        'zdiag: source buffer is no longer valid; refusing to write',
+        vim.log.levels.ERROR
+      )
+      return false
+    end
+
+    require('zdiag.utils.buffer').ensure_loaded(edit.bufnr)
+
+    local source_lines = vim.api.nvim_buf_get_lines(
+      edit.bufnr,
+      edit.source_start,
+      edit.source_end,
+      false
+    )
+
+    if not same_lines(source_lines, edit.block.original_lines) then
+      vim.notify(
+        'zdiag: source changed since the workspace was built; refusing to overwrite '
+          .. buffer_label(edit.bufnr),
+        vim.log.levels.ERROR
+      )
+      return false
+    end
+  end
+
+  return true
+end
+
 ---Update source ranges after an edit changes a block's line count.
 ---
 ---Blocks do not overlap, so only blocks after the edited source range move.
@@ -84,6 +131,10 @@ end
 function M.apply_changes(workspace)
   local edits = collect_edits(workspace)
 
+  if not source_ranges_are_current(edits) then
+    return false
+  end
+
   -- 同じファイル内では後ろから適用する。
   -- 前方で行が増減しても後方rangeの位置がずれない。
   table.sort(edits, function(a, b)
@@ -97,12 +148,6 @@ function M.apply_changes(workspace)
   local touched_buffers = {}
 
   for _, edit in ipairs(edits) do
-    if not vim.api.nvim_buf_is_valid(edit.bufnr) then
-      goto continue
-    end
-
-    require('zdiag.utils.buffer').ensure_loaded(edit.bufnr)
-
     vim.api.nvim_buf_set_lines(
       edit.bufnr,
       edit.source_start,
@@ -113,8 +158,6 @@ function M.apply_changes(workspace)
 
     update_source_ranges(workspace, edit)
     touched_buffers[edit.bufnr] = true
-
-    ::continue::
   end
 
   for bufnr in pairs(touched_buffers) do

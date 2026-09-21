@@ -122,8 +122,8 @@ The defaults are:
 	`{ min = vim.diagnostic.severity.WARN }` displays errors and warnings.
 
 `auto_refresh.enabled` (`boolean`, default `true`)
-	Rebuild an unmodified workspace after |DiagnosticChanged|.  Unsaved changes
-	are never overwritten.
+	Rebuild an unmodified workspace after source text or diagnostics change.
+	Unsaved changes are never overwritten.
 
 `auto_refresh.delay` (`integer`, default `100`)
 	Delay in milliseconds before a scheduled rebuild.  This delay also
@@ -183,6 +183,9 @@ changes unless `{ force = true }` is supplied.
 
 The workspace uses the `zdiag` filetype.  File headers such as
 "▼ lua/example.lua" are display-only and use |hl-ZdiagHeader|.
+Operations invoked from a display-only header, spacer, or separator use the
+closest displayed source line.  A separator equally close to both sides uses
+the following source block.
 
 EDITING AND WRITING				*zdiag-editing*
 
@@ -192,9 +195,13 @@ buffers are written to disk.  File headers and diagnostic messages are not
 part of the editable source blocks.
 
 After workspace edits are written, a rebuild is scheduled using
-`auto_refresh.delay`.  |DiagnosticChanged| also schedules a rebuild when
-`auto_refresh.enabled` is true.  Unsaved workspace changes are not overwritten
-by an automatic rebuild.
+`auto_refresh.delay`.  Source-buffer changes and |DiagnosticChanged| also
+schedule a rebuild when `auto_refresh.enabled` is true.  Unsaved workspace
+changes are not overwritten by an automatic rebuild.
+
+If a source range changes before an edited workspace is written, zdiag refuses
+the write instead of applying stale line positions and potentially overwriting
+or duplicating source text.
 
 SOURCE OPERATIONS				*zdiag-source-operations*
 
@@ -221,8 +228,8 @@ open()							*zdiag.open()*
 	unsaved changes is reopened without replacing those changes.
 
 jump_to_source({opts})				*zdiag.jump_to_source()*
-	Jump from the current source line in the diagnostics workspace to its source
-	buffer using the behavior configured by `jump.mode`.  `{opts}.mode` may be
+	Jump from the current workspace position to its represented source buffer
+	using the behavior configured by `jump.mode`.  `{opts}.mode` may be
 	`"close"`, `"split"`, or `"buffer"` to override the configured mode for
 	one jump.  No value is returned.
 

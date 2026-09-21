@@ -148,7 +148,7 @@ function M.get_diagnostic_severity()
   return options.diagnostics.severity
 end
 
----Return whether DiagnosticChanged events rebuild the workspace.
+---Return whether source or diagnostic changes rebuild the workspace.
 ---
 ---@return boolean
 function M.is_auto_refresh_enabled()

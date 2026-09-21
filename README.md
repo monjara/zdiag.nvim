@@ -11,7 +11,8 @@ An editable, multi-buffer diagnostics workspace for Neovim.
 - Use Tree-sitter highlighting when a parser for the source language is
   available.
 - Run source-aware LSP and diagnostic operations directly from the workspace.
-- Refresh automatically without overwriting unsaved workspace changes.
+- Refresh after source or diagnostic changes without overwriting unsaved
+  workspace changes.
 
 ## Requirements
 

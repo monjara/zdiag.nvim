@@ -44,6 +44,94 @@ local function resume_deferred_reload(workspace)
   end
 end
 
+---Return whether a buffer is represented by the diagnostics workspace.
+---
+---@param workspace zdiag.Workspace
+---@param bufnr integer
+---@return boolean
+local function contains_source_buffer(workspace, bufnr)
+  for _, block in ipairs(workspace.blocks) do
+    if block.bufnr == bufnr then
+      return true
+    end
+  end
+
+  return false
+end
+
+---Attach line-change listeners to source buffers represented by a workspace.
+---Unlike TextChanged, nvim_buf_attach() also observes API edits made to hidden
+---buffers by asynchronous LSP code actions.
+---
+---@param workspace zdiag.Workspace
+function M.attach_source_buffers(workspace)
+  local source_buffers = {}
+
+  for _, block in ipairs(workspace.blocks) do
+    source_buffers[block.bufnr] = true
+  end
+
+  local detached_buffers = {}
+
+  for bufnr in pairs(workspace.attached_buffers) do
+    if not source_buffers[bufnr] then
+      table.insert(detached_buffers, bufnr)
+    end
+  end
+
+  for _, bufnr in ipairs(detached_buffers) do
+    if vim.api.nvim_buf_is_valid(bufnr) then
+      pcall(vim.api.nvim_buf_detach, bufnr)
+    end
+
+    workspace.attached_buffers[bufnr] = nil
+  end
+
+  for bufnr in pairs(source_buffers) do
+    if
+      not workspace.attached_buffers[bufnr]
+      and vim.api.nvim_buf_is_valid(bufnr)
+      and vim.api.nvim_buf_is_loaded(bufnr)
+    then
+      local attached = vim.api.nvim_buf_attach(bufnr, false, {
+        on_lines = function(_, changed_bufnr)
+          if workspace.closed then
+            return true
+          end
+
+          if
+            contains_source_buffer(workspace, changed_bufnr)
+            and require('zdiag.core.config').is_auto_refresh_enabled()
+          then
+            M.schedule_reload(workspace)
+          end
+        end,
+
+        on_detach = function(_, detached_bufnr)
+          workspace.attached_buffers[detached_bufnr] = nil
+        end,
+      })
+
+      if attached then
+        workspace.attached_buffers[bufnr] = true
+      end
+    end
+  end
+end
+
+---Detach all source-buffer listeners owned by a workspace.
+---
+---@param workspace zdiag.Workspace
+local function detach_source_buffers(workspace)
+  for bufnr in pairs(workspace.attached_buffers) do
+    if vim.api.nvim_buf_is_valid(bufnr) then
+      pcall(vim.api.nvim_buf_detach, bufnr)
+    end
+  end
+
+  workspace.attached_buffers = {}
+end
+
 ---Schedule a diagnostics workspace rebuild after diagnostics settle.
 ---
 ---@param workspace zdiag.Workspace
@@ -146,6 +234,7 @@ end
 ---
 ---@param workspace zdiag.Workspace
 function M.remove_autocmd(workspace)
+  detach_source_buffers(workspace)
   pcall(vim.api.nvim_del_augroup_by_name, group_name(workspace))
 end
 

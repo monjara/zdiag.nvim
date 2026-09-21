@@ -7,6 +7,7 @@
 ---@field blocks zdiag.Block[]
 ---@field decorations zdiag.Decoration[]
 ---@field line_highlights zdiag.LineHighlight[]
+---@field attached_buffers table<integer, boolean>
 ---@field reload_pending boolean?
 ---@field reload_deferred boolean?
 ---@field closed boolean?
@@ -36,6 +37,7 @@ function Workspace:new(ctx)
     blocks = {},
     decorations = {},
     line_highlights = {},
+    attached_buffers = {},
   }, self)
 end
 
@@ -47,6 +49,7 @@ function Workspace:build()
 
   require('zdiag.workspace.presentation.builder').build(self, buffers)
   require('zdiag.workspace.presentation.renderer').render(self)
+  require('zdiag.workspace.autocmd').attach_source_buffers(self)
 
   return self
 end

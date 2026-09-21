@@ -165,7 +165,10 @@ function M.call(workspace, callback)
   end
 
   if not position then
-    vim.notify('zdiag: cursor is not on a source line', vim.log.levels.INFO)
+    vim.notify(
+      'zdiag: cursor cannot be mapped to a source line',
+      vim.log.levels.INFO
+    )
     return false, nil
   end
 

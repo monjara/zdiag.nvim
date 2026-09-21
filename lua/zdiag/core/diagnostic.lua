@@ -9,6 +9,58 @@ local M = {}
 ---@field end_line integer
 ---@field diagnostics vim.Diagnostic[]
 
+---Update a diagnostic to the logical position tracked by Neovim.
+---Neovim 0.12 keeps diagnostic locations in extmarks so that they follow text
+---edits, while vim.diagnostic.get() continues to return the last reported
+---lnum and col.  Older versions and producers without a location extmark fall
+---back to the reported position.
+---
+---@param diagnostic vim.Diagnostic
+---@return boolean valid
+local function resolve_logical_position(diagnostic)
+  local mark_id = diagnostic._extmark_id
+
+  if not mark_id then
+    return true
+  end
+
+  local ok, namespace =
+    pcall(vim.diagnostic.get_namespace, diagnostic.namespace)
+  local location_ns = ok
+      and namespace.user_data
+      and namespace.user_data.location_ns
+    or nil
+
+  if not location_ns then
+    return true
+  end
+
+  local position_ok, position = pcall(
+    vim.api.nvim_buf_get_extmark_by_id,
+    diagnostic.bufnr,
+    location_ns,
+    mark_id,
+    { details = true }
+  )
+
+  if not position_ok or #position == 0 then
+    return true
+  end
+
+  local details = position[3] or {}
+
+  if details.invalid then
+    return false
+  end
+
+  diagnostic.lnum = position[1]
+  diagnostic.col = position[2]
+  diagnostic.end_lnum = details.end_row or diagnostic.lnum
+  diagnostic.end_col = details.end_col or diagnostic.col
+
+  return true
+end
+
 ---Sort diagnostics by buffer and source position.
 ---
 ---@param diagnostics vim.Diagnostic[]
@@ -58,6 +110,7 @@ function M.get_by_buffer()
   local diagnostics = vim.diagnostic.get(nil, {
     severity = severity,
   })
+  diagnostics = vim.tbl_filter(resolve_logical_position, diagnostics)
   sort_by_position(diagnostics)
   return group_by_buffer(diagnostics)
 end

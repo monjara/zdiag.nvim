@@ -25,7 +25,10 @@ function M.jump_to_source(workspace, opts)
   )
 
   if not position then
-    vim.notify('zdiag: cursor is not on a source line', vim.log.levels.INFO)
+    vim.notify(
+      'zdiag: cursor cannot be mapped to a source line',
+      vim.log.levels.INFO
+    )
     return
   end
 
