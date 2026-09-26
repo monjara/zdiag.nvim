@@ -117,3 +117,7 @@ Set a `line_highlight` severity to `false` to disable its whole-line
 background.
 
 See [`:help zdiag`](doc/zdiag.txt) for all options, mappings, and Lua APIs.
+
+## License
+
+[MIT](LICENSE)
